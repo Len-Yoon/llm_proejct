@@ -1,0 +1,25 @@
+/* src/styles/Keypad.css */
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  width: 100%;
+  max-width: 450px;
+}
+.keypad-button {
+  background-color: #ffffff;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  font-size: 32px;
+  font-weight: bold;
+  padding: 25px 0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.keypad-button:active {
+  background-color: #e0e0e0;
+}
+.keypad-button.special {
+  background-color: #f0f2f5;
+  font-size: 24px;
+}
