@@ -2,7 +2,7 @@
 
 /* 보기 편한 기본 폰트와 색상 변수 설정 */
 :root {
-  --background-color: #ffffff; /* <<< 흰색으로 변경 */
+  --background-color: #ffffff;
   --primary-color: #005aab;
   --text-color: #1c1e21;
   --font-size-large: 24px;
@@ -16,7 +16,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--background-color); /* <<< 변수 적용 */
+  background-color: var(--background-color);
 }
 
 /* 키오스크 전체 컨테이너 */
@@ -26,5 +26,75 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #ffffff; /* <<< 흰색 배경 명시 */
+  background-color: var(--background-color);
+  box-sizing: border-box;
+  padding: 20px;
+}
+
+/* PIN 입력 및 인식 화면 가로 레이아웃 */
+.pin-screen {
+  flex-direction: row;
+  justify-content: space-around;
+  /* 기존 align-items: flex-start; 대신 baseline 으로 바꿔 줍니다 */
+  align-items: baseline;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* 왼쪽: RecognitionScreen 래퍼 */
+/* 왼쪽: RecognitionScreen 래퍼 */
+.recognition-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+
+  /* 아래 1줄로 교체 */
+  margin-top: -60px;  /* 위로 60px만큼 당김 — 필요에 따라 값 조정 */
+}
+
+
+/* 오른쪽: PinInputScreen 래퍼 */
+.pin-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.pin-wrapper h2 {
+  margin-bottom: 16px;
+  font-size: var(--font-size-medium);
+  color: var(--text-color);
+}
+
+/* 키패드 전체 그리드 형식 */
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 120px); /* 3열 */
+  grid-template-rows: repeat(4, 40px);     /* 4행 */
+  grid-gap: 12px;                           /* 버튼 간격 */
+  justify-content: center;                 /* 전체 중앙 정렬 */
+  margin-top: 16px;
+}
+
+/* 키패드 버튼 크기: 폭 넓게, 높이 낮게 */
+.keypad-button {
+  width: 100%;     /* 그리드 셀에 맞춰 늘어나게 */
+  height: 100%;
+  font-size: var(--font-size-medium);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* 기본 버튼 스타일 (print 버튼 등) */
+button {
+  font-size: var(--font-size-medium);
+  cursor: pointer;
 }
