@@ -1,52 +1,45 @@
 // src/components/Keypad.js
-import React, { useState } from 'react';
+import React from 'react';
 import '../styles/Keypad.css';
 
-function Keypad({ onSubmit }) {
-  // 내부 상태: 현재까지 입력된 숫자 문자열
-  const [value, setValue] = useState('');
+/**
+ * Keypad 컴포넌트
+ * - value: 현재 입력된 PIN 문자열
+ * - onKeyPress: 키가 눌렸을 때 호출되는 콜백 (키값 전달)
+ */
+function Keypad({value, onKeyPress}) {
+    // 버튼 배열 정의 (숫자, 정정, 확인)
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'submit'];
 
-  // 버튼 배열
-  const keys = ['1','2','3','4','5','6','7','8','9','clear','0','submit'];
+    return (
+        <div className="keypad-wrapper">
+            {/* 입력된 숫자를 실시간으로 표시 */}
+            <div className="keypad-display">
+                {value}
+            </div>
 
-  // 버튼 클릭 핸들러
-  const handleKeyPress = (key) => {
-    if (key === 'clear') {
-      setValue('');
-    } else if (key === 'submit') {
-      onSubmit(value);  // 부모에 값 전달
-      setValue('');     // 초기화
-    } else {
-      // 숫자 버튼: 최대 13자리 제한
-      if (value.length < 13) {
-        setValue(prev => prev + key);
-      }
-    }
-  };
+            {/* 버튼 렌더링 */}
+            <div className="keypad">
+                {keys.map((key) => {
+                    const classNames = ['keypad-button'];
+                    if (key === 'clear') classNames.push('btn-clear');
+                    else if (key === 'submit') classNames.push('btn-submit');
 
-  return (
-    <div className="keypad-wrapper">
-      {/* 디스플레이 영역 */}
-      <div className="keypad-display">
-        {value.split('').map((_, i) => '●').join('')}
-      </div>
-
-      {/* 키패드 버튼들 */}
-      <div className="keypad">
-        {keys.map(key => (
-          <button
-            key={key}
-            onClick={() => handleKeyPress(key)}
-            className={`keypad-button ${key==='clear'||key==='submit'? 'special' : ''}`}
-          >
-            {key === 'clear'  ? '정정'
-             : key === 'submit' ? '확인'
-             : key}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+                    return (
+                        <button
+                            key={key}
+                            onClick={() => onKeyPress(key)}
+                            className={classNames.join(' ')}
+                        >
+                            {key === 'clear' ? '정정'
+                                : key === 'submit' ? '확인'
+                                    : key}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
 }
 
 export default Keypad;

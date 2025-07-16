@@ -4,36 +4,77 @@ import '../styles/DocumentViewer.css';
 
 /**
  * DocumentViewer 컴포넌트
- * - props.name: 사용자 이름에 따라 렌더링할 문서 변경
+ * - props.name: 사용자 이름
+ * - props.purpose: 문서 요청 목적 (예: 등본, 초본, 가족관계증명서 등)
  */
-function DocumentViewer({ name }) {
-  // 이름별 문서 경로 매핑
-    console.log(name)
-  const srcMap = {
-    '홍길동': '/document1.html',
-    '김상철': '/document2.html',
-  };
-  // 매핑에 없으면 기본 문서
-  const defaultSrc = '/defaultDocument.html';
+function DocumentViewer({name, purpose}) {
+    // 이름과 목적에 따른 문서 경로 결정
+    let docSrc;
 
-  // 전달된 name에 맞는 문서 경로 선택
-  const docSrc = srcMap[name] || defaultSrc;
+    if (name === '홍길동') {
+        if (purpose.includes('등본')) {
+            docSrc = '/document1.html';
+        } else if (purpose.includes('초본')) {
+            docSrc = '/extract1.html';
+        } else if (purpose.includes('가족관계')) {
+            docSrc = '/family1.html';
+        } else {
+            docSrc = '/healthInsurance1.html';
+        }
+    } else if (name === '김상철') {
+        if (purpose.includes('등본')) {
+            docSrc = '/document2.html';
+        } else if (purpose.includes('초본')) {
+            docSrc = '/extract2.html';
+        } else if (purpose.includes('가족관계')) {
+            docSrc = '/family2.html';
+        } else {
+            docSrc = '/healthInsurance2.html';
+        }
+    } else {
+        // 다른 사용자 또는 미지정
+        if (purpose.includes('등본')) {
+            docSrc = '/document3.html';
+        } else if (purpose.includes('초본')) {
+            docSrc = '/extract3.html';
+        } else if (purpose.includes('가족관계')) {
+            docSrc = '/family3.html';
+        } else {
+            docSrc = '/healthInsurance3.html';
+        }
+    }
 
-  return (
-    <div className="document-container">
-      <iframe
-        src={docSrc}
-        title="주민등록표 등본"
-        className="document-iframe"
-      />
-      <button
-        className="print-button"
-        onClick={() => window.print()}
-      >
-        인쇄하기
-      </button>
-    </div>
-  );
+    return (
+        <div className="document-container">
+            {/* 요청 목적 및 사용자 이름 표시 */}
+            <div className="document-info">
+                <strong>이름:</strong> {name} &nbsp;|&nbsp; <strong>요청:</strong> {purpose}
+            </div>
+
+            {/* 문서를 새 창으로 열기 */}
+            <button
+                className="open-button"
+                onClick={() => window.open(docSrc, '_blank')}
+            >
+                문서 열기
+            </button>
+
+            {/* 앱 내 미리보기용 iframe */}
+            <iframe
+                src={docSrc}
+                title="문서 뷰어"
+                className="document-iframe"
+            />
+
+            {/* 인쇄 버튼 */}
+            <button
+                className="print-button"
+                onClick={() => window.print()}
+            >
+                인쇄하기
+            </button>
+        </div>
+    );
 }
 
 export default DocumentViewer;
