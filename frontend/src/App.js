@@ -36,9 +36,14 @@ function App() {
                 docType = '초본';
             } else if (summary.includes('가족관계')) {
                 docType = '가족관계증명서';
-            } else {
+            } else if (summary.includes("건강보험")) {
                 docType = '건강보험자격득실확인서';
+            } else if (summary.includes("날씨")) {
+                docType = '날씨'
+            } if (summary.includes("행사")) {
+                docType = '행사'
             }
+
             setPurpose(docType);
             setFlowState('PIN_INPUT');
         } catch (err) {
