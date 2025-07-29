@@ -36,11 +36,13 @@ MINWON_KEYWORDS = {
     # 초본 관련
     "초본": "주민등록초본 발급 요청",
     "주민등록초본": "주민등록초본 발급 요청",
+    "주민초본": "주민등록초본 발급 요청",
 
     # 가족관계증명서 관련
     "가족관계증명서": "가족관계증명서 발급 요청",
     "가족관계증명": "가족관계증명서 발급 요청",
     "가족관계": "가족관계증명서 발급 요청",
+    "가족증명": "가족관계증명서 발급 요청",
 
     # 건강보험득실확인서 관련
     "건강보험득실확인서": "건강보험득실확인서 발급 요청",
@@ -109,14 +111,18 @@ async def receive_text(request: Request):
         print("받은 텍스트:", user_input)
 
         # [1차] 키워드 기반 목적 판별
-        purpose = get_purpose_by_keyword(user_input)
-        if purpose:
-            print("키워드 매칭:", purpose)
-            return {"purpose": purpose}
+        keyword_purpose = get_purpose_by_keyword(user_input)
+        if keyword_purpose:
+            print("키워드 매칭:", keyword_purpose)
+            return {
+                "purpose": keyword_purpose,
+                "source": "keyword",
+                "summary": keyword_purpose  # 요약도 동일하게 넣음
+            }
 
-        # [2차] LLM에 목적 분석 요청 (키워드 없을 때)
+        # [2차] LLM 목적 분석
         response = client.chat.completions.create(
-            model="gpt-4o",  # gpt-4o 사용 가능하면 교체
+            model="gpt-4o",
             messages=[
                 {
                     "role": "system",
@@ -130,8 +136,17 @@ async def receive_text(request: Request):
         )
         summary = response.choices[0].message.content.strip()
         print("🤖 LLM 분석 결과:", summary)
-        return {"purpose": summary}
+
+        return {
+            "purpose": summary,
+            "source": "llm",
+            "summary": summary
+        }
 
     except Exception as e:
         print("OpenAI 오류:", e)
-        return {"purpose": "분석 실패"}
+        return {
+            "purpose": "분석 실패",
+            "summary": "",
+            "source": "error"
+        }

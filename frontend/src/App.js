@@ -1,5 +1,4 @@
-// src/App.js
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import './styles/App.css';
 import WelcomeScreen from './components/WelcomeScreen';
 import RecognitionScreen from './components/RecognitionScreen';
@@ -9,11 +8,11 @@ import DocumentViewer from './components/DocumentViewer';
 function App() {
     const [flowState, setFlowState] = useState('WELCOME');
     const [recognizedText, setRecognizedText] = useState('');
-    const [purpose, setPurpose] = useState('');    // 문서 종류만 저장
+    const [purpose, setPurpose] = useState('');
     const [pinValue, setPinValue] = useState('');
     const [userName, setUserName] = useState('');
 
-    // 1) 음성인식 텍스트 → 의도 분석 → 문서 종류 추출 → purpose, recognizedText 저장 → PIN 입력 단계
+    // 1) 음성인식 텍스트 → 의도 분석 → summary, purpose 저장 → PIN 입력 단계
     const handleRecognition = async (text) => {
         try {
             const res = await fetch('http://localhost:8000/receive-text/', {
@@ -24,26 +23,13 @@ function App() {
             if (!res.ok) throw new Error(res.status);
             const data = await res.json();
 
-            // 서버에서 받은 요약문
             const summary = data.summary || text;
+            const docType = data.purpose || '';
+
+            console.log('서버 응답 summary:', summary);
+            console.log('서버 응답 purpose:', docType);
+
             setRecognizedText(summary);
-
-            // 요약문에 키워드 포함 여부로 문서 종류만 추출
-            let docType = '';
-            if (summary.includes('등본')) {
-                docType = '등본';
-            } else if (summary.includes('초본')) {
-                docType = '초본';
-            } else if (summary.includes('가족관계')) {
-                docType = '가족관계증명서';
-            } else if (summary.includes("건강보험")) {
-                docType = '건강보험자격득실확인서';
-            } else if (summary.includes("날씨")) {
-                docType = '날씨'
-            } if (summary.includes("행사")) {
-                docType = '행사'
-            }
-
             setPurpose(docType);
             setFlowState('PIN_INPUT');
         } catch (err) {
@@ -59,7 +45,7 @@ function App() {
         } else if (key === 'submit') {
             handlePinSubmit(pinValue);
         } else if (pinValue.length < 13) {
-            setPinValue(prev => prev + key);
+            setPinValue((prev) => prev + key);
         }
     };
 
@@ -94,31 +80,27 @@ function App() {
     const renderCurrentScreen = () => {
         switch (flowState) {
             case 'WELCOME':
-                return <WelcomeScreen onSubmitText={handleRecognition}/>;
+                return <WelcomeScreen onSubmitText={handleRecognition} />;
             case 'PIN_INPUT':
                 return (
                     <div className="pin-screen">
                         <div className="recognition-wrapper">
-                            <RecognitionScreen status="finished" text={recognizedText}/>
+                            <RecognitionScreen status="finished" text={recognizedText} />
                         </div>
                         <div className="pin-wrapper">
                             <h2>주민번호를 입력해주세요 (- 없이)</h2>
-                            <Keypad value={pinValue} onKeyPress={handleKeyPress}/>
+                            <Keypad value={pinValue} onKeyPress={handleKeyPress} />
                         </div>
                     </div>
                 );
             case 'DOCUMENT_VIEW':
-                return <DocumentViewer name={userName} purpose={purpose}/>;
+                return <DocumentViewer name={userName} purpose={purpose} />;
             default:
-                return <WelcomeScreen onSubmitText={handleRecognition}/>;
+                return <WelcomeScreen onSubmitText={handleRecognition} />;
         }
     };
 
-    return (
-        <div className="kiosk-container">
-            {renderCurrentScreen()}
-        </div>
-    );
+    return <div className="kiosk-container">{renderCurrentScreen()}</div>;
 }
 
 export default App;
