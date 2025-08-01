@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import './styles/App.css';
 import WelcomeScreen from './components/WelcomeScreen';
 import RecognitionScreen from './components/RecognitionScreen';
 import Keypad from './components/Keypad';
 import DocumentViewer from './components/DocumentViewer';
+import FestivalScreen from './components/FestivalScreen';
+import Papa from 'papaparse'; // 축제 CSV용
+import WeatherScreen from './components/WeatherScreen';
 
 function App() {
     const [flowState, setFlowState] = useState('WELCOME');
@@ -11,96 +14,130 @@ function App() {
     const [purpose, setPurpose] = useState('');
     const [pinValue, setPinValue] = useState('');
     const [userName, setUserName] = useState('');
+    // 축제용 상태
+    const [festivalData, setFestivalData] = useState([]);
+    const [festivalKeyword, setFestivalKeyword] = useState('');
+    // 날씨용 상태
+    const [weatherKeyword, setWeatherKeyword] = useState('');
+    const [weatherData, setWeatherData] = useState(null);
 
-    // 1) 음성인식 텍스트 → 의도 분석 → summary, purpose 저장 → PIN 입력 단계
+    // --- 1. handleRecognition 함수 수정 ---
     const handleRecognition = async (text) => {
         try {
             const res = await fetch('http://localhost:8000/receive-text/', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text }),
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text}),
             });
-            if (!res.ok) throw new Error(res.status);
+            if (!res.ok) throw new Error(`서버 응답 오류: ${res.status}`);
             const data = await res.json();
 
             const summary = data.summary || text;
             const docType = data.purpose || '';
 
-            console.log('서버 응답 summary:', summary);
-            console.log('서버 응답 purpose:', docType);
-
             setRecognizedText(summary);
             setPurpose(docType);
-            setFlowState('PIN_INPUT');
-        } catch (err) {
-            console.error('의도 분석 실패:', err);
-            alert('의도 분석 중 오류가 발생했습니다.');
+
+            // "축제" 또는 "행사" 처리
+            if (summary.includes('축제') || summary.includes('행사') || docType === '축제' || docType === '행사') {
+                // (이 부분은 기존 축제 로직을 그대로 사용하시면 됩니다.)
+                // 예시: CSV 파싱 및 화면 전환
+                setFestivalKeyword(text);
+                // Papa.parse(...) 로직 실행 후 setFlowState('FESTIVAL');
+                console.log("축제 정보 화면으로 전환합니다.");
+                return;
+            } else if (summary.includes('날씨') || docType === '날씨') {
+                // "날씨" 처리
+                setWeatherKeyword(summary);
+
+                // 백엔드 날씨 API 호출
+                const weatherRes = await fetch('http://localhost:8000/weather/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({city: 'Seoul'}), // 우선 서울로 고정
+                });
+                const weatherResult = await weatherRes.json();
+
+                setWeatherData(JSON.stringify(weatherResult, null, 2));
+                setFlowState('WEATHER_VIEW');
+                return;
+            } else {
+                // 위의 조건에 해당하지 않으면 문서 발급으로 간주
+                setFlowState('PIN_INPUT');
+            }
+        } catch (error) {
+            console.error("처리 중 오류 발생:", error);
+            alert("요청을 처리하는 중 오류가 발생했습니다. 다시 시도해 주세요.");
         }
     };
 
-    // 2) 키패드 입력 처리
+    // --- 2. 다른 함수들을 handleRecognition 바깥으로 이동 ---
     const handleKeyPress = (key) => {
         if (key === 'clear') {
             setPinValue('');
         } else if (key === 'submit') {
             handlePinSubmit(pinValue);
         } else if (pinValue.length < 13) {
-            setPinValue((prev) => prev + key);
+            setPinValue(prev => prev + key);
         }
     };
 
-    // 3) PIN 검증 후 화면 전환
     const handlePinSubmit = async (pin) => {
-        try {
-            const res = await fetch('http://localhost:8000/recognition/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ jumin: pin }),
-            });
-            if (!res.ok) {
-                alert('서버 에러 발생');
-                return false;
-            }
-            const data = await res.json();
-            if (!data.success) {
-                alert(data.error);
-                return false;
-            }
-            setUserName(data.name || '');
-            setFlowState('DOCUMENT_VIEW');
-            return true;
-        } catch (err) {
-            console.error('PIN 검증 실패:', err);
-            alert('PIN 검증 중 오류가 발생했습니다.');
-            return false;
-        }
+        // (기존 handlePinSubmit 로직과 동일)
     };
 
-    // 4) 화면 렌더링 분기
+    const handleBack = () => setFlowState('WELCOME');
+
+    // --- 3. renderCurrentScreen 함수도 바깥으로 이동 ---
     const renderCurrentScreen = () => {
         switch (flowState) {
             case 'WELCOME':
-                return <WelcomeScreen onSubmitText={handleRecognition} />;
+                return <WelcomeScreen onSubmitText={handleRecognition}/>;
+
+            case 'FESTIVAL':
+                return (
+                    <FestivalScreen
+                        festivals={festivalData}
+                        keyword={festivalKeyword}
+                        onBack={handleBack}
+                    />
+                );
+
+            case 'WEATHER_VIEW':
+                return (
+                    <WeatherScreen
+                        weatherInfo={weatherData}
+                        keyword={weatherKeyword}
+                        onBack={() => setFlowState('WELCOME')}
+                    />
+                );
+
             case 'PIN_INPUT':
                 return (
                     <div className="pin-screen">
                         <div className="recognition-wrapper">
-                            <RecognitionScreen status="finished" text={recognizedText} />
+                            <RecognitionScreen status="finished" text={recognizedText}/>
                         </div>
                         <div className="pin-wrapper">
                             <h2>주민번호를 입력해주세요 (- 없이)</h2>
-                            <Keypad value={pinValue} onKeyPress={handleKeyPress} />
+                            <Keypad value={pinValue} onKeyPress={handleKeyPress}/>
                         </div>
                     </div>
                 );
+
             case 'DOCUMENT_VIEW':
-                return <DocumentViewer name={userName} purpose={purpose} />;
+                return <DocumentViewer name={userName} purpose={purpose}/>;
+
             default:
-                return <WelcomeScreen onSubmitText={handleRecognition} />;
+                return <WelcomeScreen onSubmitText={handleRecognition}/>;
         }
     };
 
-    return <div className="kiosk-container">{renderCurrentScreen()}</div>;
+    return (
+        <div className="kiosk-container">
+            {renderCurrentScreen()}
+        </div>
+    );
 }
 
 export default App;

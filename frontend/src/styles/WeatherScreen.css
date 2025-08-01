@@ -1,0 +1,118 @@
+/* src/styles/WeatherScreen.css */
+
+.weather-container {
+    background: #ffffff;
+    /* WelcomeScreen과 통일성을 위해 컨테이너 내부 아이템들을 중앙 정렬합니다. */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 3. 말풍선 크기를 키웁니다. */
+.weather-bubble {
+    padding: 30px;
+    min-width: 450px; /* 최소 너비를 키워 전체 크기 확보 */
+}
+
+/* 4. 뒤로가기 버튼의 위치와 스타일을 수정합니다. */
+.back-btn-bottom {
+    margin-top: 25px; /* 말풍선과의 간격 */
+    padding: 15px 40px;
+    font-size: 1.2rem; /* 폰트 크기 키움 */
+    font-weight: bold;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    background: #fff;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.back-btn-bottom:hover {
+    background-color: #f0f0f0;
+}
+
+/* 5. 제목 폰트 크기를 키웁니다. */
+.weather-title {
+    font-size: 2rem;
+    margin-bottom: 25px;
+    color: #333;
+    font-weight: 700;
+    text-align: center;
+}
+
+.weather-info-card {
+    width: 100%;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 12px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.weather-error {
+    color: #d9534f;
+    font-size: 1.1rem;
+    padding: 20px;
+}
+
+.weather-details-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.weather-main-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.weather-icon {
+    width: 70px;
+    height: 70px;
+}
+
+/* 6. 주요 날씨 정보 폰트 크기를 키웁니다. */
+.weather-temp {
+    font-size: 3.5rem;
+    font-weight: 500;
+    color: #000;
+}
+
+.weather-desc {
+    font-size: 1.5rem;
+    color: #444;
+    font-weight: bold;
+    margin-left: 5px;
+    text-transform: capitalize;
+}
+
+.weather-sub-info {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 20px 10px;
+    border: 1px solid #eee;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 7. 보조 날씨 정보 폰트 크기를 키웁니다. */
+.info-item .label {
+    font-size: 1rem;
+    color: #666;
+}
+
+.info-item .value {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #222;
+}
