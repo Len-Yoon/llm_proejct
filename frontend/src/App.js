@@ -39,11 +39,21 @@ function App() {
             setPurpose(docType);
 
             // "축제" 또는 "행사" 처리
-            if (summary.includes('축제') || summary.includes('행사') || docType === '축제' || docType === '행사') {
+            if (summary.includes('축제') || summary.includes('행사')) {
                 // (이 부분은 기존 축제 로직을 그대로 사용하시면 됩니다.)
                 // 예시: CSV 파싱 및 화면 전환
                 setFestivalKeyword(text);
                 // Papa.parse(...) 로직 실행 후 setFlowState('FESTIVAL');
+                Papa.parse('/festival.csv', {
+                    download: true,
+                    header: true, // CSV 첫줄을 컬럼명으로 사용
+                    complete: (result) => {
+                        console.log('CSV 파싱 결과:', result.data);
+                        setFestivalData(result.data); // 상태에 저장
+                        setFlowState('FESTIVAL');
+                    },
+                });
+
                 console.log("축제 정보 화면으로 전환합니다.");
                 return;
             } else if (summary.includes('날씨') || docType === '날씨') {
