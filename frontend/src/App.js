@@ -21,7 +21,17 @@ function App() {
     const [weatherKeyword, setWeatherKeyword] = useState('');
     const [weatherData, setWeatherData] = useState(null);
 
-    // --- 1. handleRecognition 함수 수정 ---
+    // ✅ 더미 주민번호 DB
+    const dummyUsers = {
+        '9011111111111': '홍길동',
+        '8505051222222': '김상철',
+        '0101013456789': '이영희',
+    };
+
+    // 홈으로 이동
+    const handleBack = () => setFlowState('WELCOME');
+
+    // --- 1. 음성/텍스트 인식 처리 ---
     const handleRecognition = async (text) => {
         try {
             const res = await fetch('http://localhost:8000/receive-text/', {
@@ -33,55 +43,68 @@ function App() {
             const data = await res.json();
 
             const summary = data.summary || text;
-            const docType = data.purpose || '';
-
             setRecognizedText(summary);
-            setPurpose(docType);
 
-            // "축제" 또는 "행사" 처리
+            // --- ① 축제 처리 ---
             if (summary.includes('축제') || summary.includes('행사')) {
-                // (이 부분은 기존 축제 로직을 그대로 사용하시면 됩니다.)
-                // 예시: CSV 파싱 및 화면 전환
                 setFestivalKeyword(text);
-                // Papa.parse(...) 로직 실행 후 setFlowState('FESTIVAL');
                 Papa.parse('/festival.csv', {
                     download: true,
-                    header: true, // CSV 첫줄을 컬럼명으로 사용
+                    header: true,
                     complete: (result) => {
                         console.log('CSV 파싱 결과:', result.data);
-                        setFestivalData(result.data); // 상태에 저장
+                        setFestivalData(result.data);
                         setFlowState('FESTIVAL');
                     },
                 });
-
-                console.log("축제 정보 화면으로 전환합니다.");
                 return;
-            } else if (summary.includes('날씨') || docType === '날씨') {
-                // "날씨" 처리
+            }
+
+            // --- ② 날씨 처리 ---
+            if (summary.includes('날씨') || data.purpose === '날씨') {
                 setWeatherKeyword(summary);
 
-                // 백엔드 날씨 API 호출
                 const weatherRes = await fetch('http://localhost:8000/weather/', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({city: 'Seoul'}), // 우선 서울로 고정
+                    body: JSON.stringify({city: 'Seoul'}),
                 });
                 const weatherResult = await weatherRes.json();
 
                 setWeatherData(JSON.stringify(weatherResult, null, 2));
                 setFlowState('WEATHER_VIEW');
                 return;
-            } else {
-                // 위의 조건에 해당하지 않으면 문서 발급으로 간주
-                setFlowState('PIN_INPUT');
             }
+
+            // --- ③ 문서 발급 처리 ---
+            let docType = '';
+            if (summary.includes('등본') || summary.includes('주민등록등본')) {
+                docType = '주민등록등본';
+            } else if (summary.includes('초본') || summary.includes('주민등록초본')) {
+                docType = '주민등록초본';
+            } else if (summary.includes('가족관계') || summary.includes('가족관계증명서')) {
+                docType = '가족관계증명서';
+            } else if (summary.includes('건강보험') || summary.includes('득실') || summary.includes('자격')) {
+                docType = '건강보험자격득실확인서';
+            }
+
+            setPurpose(docType);
+
+            if (docType) {
+                // 문서 발급이면 PIN 입력 화면 이동
+                setFlowState('PIN_INPUT');
+            } else {
+                alert('민원 유형을 인식하지 못했습니다. 다시 말씀해주세요.');
+                setFlowState('WELCOME');
+            }
+
         } catch (error) {
             console.error("처리 중 오류 발생:", error);
             alert("요청을 처리하는 중 오류가 발생했습니다. 다시 시도해 주세요.");
         }
     };
 
-    // --- 2. 다른 함수들을 handleRecognition 바깥으로 이동 ---
+    // --- 2. Keypad 처리 ---
     const handleKeyPress = (key) => {
         if (key === 'clear') {
             setPinValue('');
@@ -92,17 +115,23 @@ function App() {
         }
     };
 
+    // --- 3. 주민번호 제출 처리 ---
     const handlePinSubmit = async (pin) => {
-        // (기존 handlePinSubmit 로직과 동일)
+        // 더미 데이터 조회
+        if (dummyUsers[pin]) {
+            setUserName(dummyUsers[pin]);
+            setFlowState('DOCUMENT_VIEW'); // 이름 표시 후 문서 발급 화면 이동
+        } else {
+            alert('등록되지 않은 주민번호입니다.');
+            setPinValue('');
+        }
     };
 
-    const handleBack = () => setFlowState('WELCOME');
-
-    // --- 3. renderCurrentScreen 함수도 바깥으로 이동 ---
+    // --- 4. 화면 렌더링 ---
     const renderCurrentScreen = () => {
         switch (flowState) {
             case 'WELCOME':
-                return <WelcomeScreen onSubmitText={handleRecognition}/>;
+                return <WelcomeScreen onSubmitText={handleRecognition} />;
 
             case 'FESTIVAL':
                 return (
@@ -118,7 +147,7 @@ function App() {
                     <WeatherScreen
                         weatherInfo={weatherData}
                         keyword={weatherKeyword}
-                        onBack={() => setFlowState('WELCOME')}
+                        onBack={handleBack}
                     />
                 );
 
@@ -126,20 +155,20 @@ function App() {
                 return (
                     <div className="pin-screen">
                         <div className="recognition-wrapper">
-                            <RecognitionScreen status="finished" text={recognizedText}/>
+                            <RecognitionScreen status="finished" text={recognizedText} />
                         </div>
                         <div className="pin-wrapper">
                             <h2>주민번호를 입력해주세요 (- 없이)</h2>
-                            <Keypad value={pinValue} onKeyPress={handleKeyPress}/>
+                            <Keypad value={pinValue} onKeyPress={handleKeyPress} />
                         </div>
                     </div>
                 );
 
             case 'DOCUMENT_VIEW':
-                return <DocumentViewer name={userName} purpose={purpose}/>;
+                return <DocumentViewer name={userName} purpose={purpose} />;
 
             default:
-                return <WelcomeScreen onSubmitText={handleRecognition}/>;
+                return <WelcomeScreen onSubmitText={handleRecognition} />;
         }
     };
 

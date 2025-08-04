@@ -127,8 +127,8 @@ async def receive_text(request: Request):
 
         return {
             "source": "llm",
-            "summary": summary,
-            "purpose": summary,
+            "summary": keyword_purpose,
+            "purpose": keyword_purpose,
             "matched_keyword": keyword_purpose
         }
 
