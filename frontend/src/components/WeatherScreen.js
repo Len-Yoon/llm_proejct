@@ -14,6 +14,24 @@ function WeatherScreen({ weatherInfo, keyword, onBack }) {
         console.error("날씨 정보 파싱 실패:", e);
     }
 
+    // //window.onload()와 같이 화면이 시작하자마자 실행하는 함수 //날씨 출력 멘트만 TTS)
+    // useEffect(() => {
+    //     const condition = "날씨";
+    //
+    //     console.log("WeatherScreen 로드됨, condition 전송:", condition);
+    //
+    //     // 백엔드 FastAPI 호출 예시
+    //     fetch("http://localhost:8000/만든 API 명", {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({ condition })
+    //     })
+    //     .then(res => res.json())
+    //     .then(data => console.log("백엔드 응답:", data))
+    //     .catch(err => console.error("백엔드 호출 실패:", err));
+    //
+    // }, []);
+
     const renderWeatherContent = () => {
         if (!weatherData || weatherData.cod !== 200) {
             return <p className="weather-error">날씨 정보를 불러오는 데 실패했습니다.</p>;

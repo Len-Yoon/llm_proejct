@@ -2,15 +2,15 @@
 import React from 'react';
 import '../styles/DocumentViewer.css';
 
-<script>
-
-</script>
 /**
  * DocumentViewer 컴포넌트
  * - props.name: 사용자 이름
  * - props.purpose: 문서 요청 목적 (예: 등본, 초본, 가족관계증명서 등)
  */
+
 function DocumentViewer({name, purpose}) {
+    //UseEffect X html에서 Sript에서 처리 예정
+
     // 이름과 목적에 따른 문서 경로 결정
     let docSrc;
 

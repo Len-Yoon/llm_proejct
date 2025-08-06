@@ -16,6 +16,29 @@
             document.getElementById('issue-datetime').textContent =
                 `${yyyy}-${mm}-${dd} ${today.getHours().toString().padStart(2,'0')}:${today.getMinutes().toString().padStart(2,'0')}:${today.getSeconds().toString().padStart(2,'0')}`;
         });
+
+        // 시작 시 바로 시작되는 부분 STT/TTS  (멘트: 문의하신 건강보험자격득실확인서 출력이 완료됐어요!)
+        // 시작 시 바로 시작되는 부분 STT/TTS  (멘트: 문의하신 건강보험자격득실확인서 출력이 완료됐어요!)
+        window.onload = async function () {
+            // 전송할 조건 변수
+            const condition = "건강보험자격득실확인서 출력";  // 상황에 맞게 값 변경 가능
+
+            //Fast API를 통한 백엔드 통신
+            try {
+                // FastAPI로 condition 전송
+                const response = await fetch("http://localhost:8000/만든 API 명", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ condition: condition })
+                });
+
+                const data = await response.json();
+                console.log("백엔드 응답:", data);
+
+            } catch (error) {
+                console.error("백엔드 호출 오류:", error);
+            }
+        };
     </script>
 </head>
 <body>

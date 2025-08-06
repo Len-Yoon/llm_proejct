@@ -3,6 +3,25 @@ import hamsterImage from '../assets/hamster12.png';
 import '../styles/FestivalScreen.css';
 
 function FestivalScreen({ festivals, keyword, onBack }) {
+    // //window.onload()와 같이 화면이 시작하자마자 실행하는 함수 //멘트: 요청하신 서울의 축제 정보를 알려드려요! 자세한 정보는 카메라로 QR를 찍어주세요!)
+    // useEffect(() => {
+    //     const condition = "축제";
+    //
+    //     console.log("WeatherScreen 로드됨, condition 전송:", condition);
+    //
+    //     // 백엔드 FastAPI 호출 예시
+    //     fetch("http://localhost:8000/만든 API 명", {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({ condition })
+    //     })
+    //     .then(res => res.json())
+    //     .then(data => console.log("백엔드 응답:", data))
+    //     .catch(err => console.error("백엔드 호출 실패:", err));
+    //
+    // }, []);
+
+
     // 오늘 날짜 기준
     const today = new Date();
     today.setHours(0, 0, 0, 0);
