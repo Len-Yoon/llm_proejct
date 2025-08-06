@@ -49,7 +49,7 @@ function FestivalScreen({ festivals, keyword, onBack }) {
                         pagedFestivals.map((f, i) => {
                             const url = f["홈페이지주소"] || '';
                             const qrUrl = url
-                                ? `https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(url)}`
+                                ? `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(url)}`
                                 : '';
 
                             const startDateStr = f.startDate

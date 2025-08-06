@@ -33,6 +33,7 @@ async def get_weather(request: Request):
         weather_data = response.json()
         print(weather_data)
         print(f"✅ 날씨 정보 조회 성공: {city}")
+
         return weather_data
     except httpx.HTTPStatusError as e:
         print(f"❌ 날씨 API 오류: {e.response.status_code}")

@@ -2,6 +2,9 @@
 import React from 'react';
 import '../styles/DocumentViewer.css';
 
+<script>
+
+</script>
 /**
  * DocumentViewer 컴포넌트
  * - props.name: 사용자 이름
