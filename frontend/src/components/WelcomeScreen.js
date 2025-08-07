@@ -1,3 +1,4 @@
+// src/components/WelcomeScreen.jsx
 import React, { useState } from 'react';
 import '../styles/WelcomeScreen.css';
 import hamsterImage from '../assets/hamster3.png';
@@ -7,11 +8,11 @@ function WelcomeScreen({ onMenuClick, onSubmitText, onVoiceClick, isRecognizing 
 
   // ✅ 버튼 텍스트를 요청에 맞게 수정
   const menuItems = [
-    '주민등록등본',
-    '주민등록초본',
+    '주민등록등본', 
+    '주민등록초본', 
     '가족관계증명서 ',
-    '건강보험자격득실확인서',
-    '축제/행사',
+    '건강보험자격득실확인서', 
+    '축제/행사', 
     '날씨'
   ];
 
@@ -28,7 +29,7 @@ function WelcomeScreen({ onMenuClick, onSubmitText, onVoiceClick, isRecognizing 
         <img src={hamsterImage} alt="안내 햄스터" className="hamster-image-large" />
         <div className="speech-bubble-large">
           <p>안녕하세요! 무엇을 도와드릴까요?</p>
-
+          
           <div className="input-area">
             {isRecognizing ? (
               <div className="voice-loading-area">

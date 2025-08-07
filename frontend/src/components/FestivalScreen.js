@@ -1,27 +1,10 @@
+// src/components/FestivalScreen.js
 import React, { useState } from 'react';
 import hamsterImage from '../assets/hamster12.png';
 import '../styles/FestivalScreen.css';
 
-function FestivalScreen({ festivals, keyword, onBack }) {
-    // //window.onload()와 같이 화면이 시작하자마자 실행하는 함수 //멘트: 요청하신 서울의 축제 정보를 알려드려요! 자세한 정보는 카메라로 QR를 찍어주세요!)
-    // useEffect(() => {
-    //     const condition = "축제";
-    //
-    //     console.log("WeatherScreen 로드됨, condition 전송:", condition);
-    //
-    //     // 백엔드 FastAPI 호출 예시
-    //     fetch("http://localhost:8000/만든 API 명", {
-    //         method: "POST",
-    //         headers: { "Content-Type": "application/json" },
-    //         body: JSON.stringify({ condition })
-    //     })
-    //     .then(res => res.json())
-    //     .then(data => console.log("백엔드 응답:", data))
-    //     .catch(err => console.error("백엔드 호출 실패:", err));
-    //
-    // }, []);
-
-
+// onBack prop은 더 이상 사용되지 않으므로 제거합니다.
+function FestivalScreen({ festivals, keyword }) {
     // 오늘 날짜 기준
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -59,8 +42,9 @@ function FestivalScreen({ festivals, keyword, onBack }) {
 
             <div className="festival-content-box">
                 <h2>‘{keyword}’ 관련 서울 축제</h2>
-                <button onClick={onBack} className="back-btn">뒤로가기</button>
-
+                
+                {/* --- 이 부분의 뒤로가기 버튼이 삭제되었습니다 --- */}
+                
                 <div className="festival-list">
                     {pagedFestivals.length === 0 ? (
                         <p className="no-result">예정된 축제가 없습니다.</p>
@@ -88,7 +72,7 @@ function FestivalScreen({ festivals, keyword, onBack }) {
                                         <div className="festival-info">
                                             <div><span className="festival-label">장소:</span>{f["개최장소"] || '미정'}</div>
                                             <div><span className="festival-label">주소:</span>{address}</div>
-                                            <div><span className="festival-label">기간:</span>{`${startDateStr}, ${endDateStr}`}</div>
+                                            <div><span className="festival-label">기간:</span>{`${startDateStr} ~ ${endDateStr}`}</div>
                                         </div>
                                     </div>
 

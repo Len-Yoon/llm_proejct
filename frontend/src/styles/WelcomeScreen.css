@@ -15,7 +15,7 @@
 }
 
 .hamster-image-large {
-  width: 300px;
+  width: 300px; /* 크기 살짝 키움 */
   z-index: 10;
 }
 
@@ -31,7 +31,7 @@
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   margin-top: -50px;
   padding-top: 70px;
-  width: 700px;
+  width: 700px; /* 너비 고정 */
   box-sizing: border-box;
 }
 
@@ -108,8 +108,9 @@
 }
 
 .menu-button {
+  height: 150px;
   padding: 30px 15px; /* 버튼 크기 키움 */
-  font-size: 26px; /* 폰트 크기 키움 */
+  font-size: 27px; /* 폰트 크기 키움 */
   font-weight: bold;
   border-radius: 15px;
   border: 3px solid var(--primary-color);

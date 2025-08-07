@@ -25,16 +25,18 @@
 .keypad {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    width: 280px;
+    gap: 36px;
+    width: 380px;
+    height: 240px;
     margin: 0 auto;
 }
 
 /* 버튼: 정사각형 유지, 크게 터치하기 편하게 */
 .keypad-button {
     width: 100%;
+    height: 60px;
     aspect-ratio: 1 / 1;
-    font-size: 26px;
+    font-size: 40px;
     padding: 0;
     border: 2px solid #888;
     background: #f0f0f0;

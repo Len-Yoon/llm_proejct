@@ -45,8 +45,8 @@ body {
   position: absolute;
   top: 3px;
   right: 3px;
-  width: 80px;
-  height: 80px;
+  width: 120px;
+  height: 120px;
   background: url('../assets/home.png') no-repeat center center;
   background-size: contain;
   border: none;
@@ -67,7 +67,6 @@ body {
   justify-content: center; /* 수직 중앙 정렬 */
   align-items: center;     /* 수평 중앙 정렬 */
   width: 100%;
-  gap: 40px; /* 컴포넌트 사이 간격 추가 */
 }
 
 .recognition-wrapper {

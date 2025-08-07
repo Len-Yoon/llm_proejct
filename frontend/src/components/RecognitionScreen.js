@@ -1,6 +1,6 @@
 import React from 'react';
 import '../styles/RecognitionScreen.css';
-import hamsterImage from '../assets/hamster3.png';
+import hamsterImage from '../assets/hamster123.png';
 
 // status: 'recognizing' | 'finished'
 function RecognitionScreen({ status, text }) {
