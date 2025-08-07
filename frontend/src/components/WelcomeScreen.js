@@ -1,50 +1,66 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import '../styles/WelcomeScreen.css';
 import hamsterImage from '../assets/hamster3.png';
 
-function WelcomeScreen({onSubmitText}) {
-    //window.onload()와 같이 화면이 시작하자마자 실행하는 함수 // (멘트: 안녕하세요! 무엇을 도와드릴까요?)
+function WelcomeScreen({ onMenuClick, onSubmitText, onVoiceClick, isRecognizing }) {
+  const [inputText, setInputText] = useState('');
 
-    // useEffect(() => {
-    //     const condition = "홈 화면";
-    //
-    //     console.log("WeatherScreen 로드됨, condition 전송:", condition);
-    //
-    //     // 백엔드 FastAPI 호출 예시
-    //     fetch("http://127.0.0.1:8000/만든 API 명", {
-    //         method: "POST",
-    //         headers: { "Content-Type": "application/json" },
-    //         body: JSON.stringify({ condition })
-    //     })
-    //     .then(res => res.json())
-    //     .then(data => console.log("백엔드 응답:", data))
-    //     .catch(err => console.error("백엔드 호출 실패:", err));
-    //
-    // }, []);
+  // ✅ 버튼 텍스트를 요청에 맞게 수정
+  const menuItems = [
+    '주민등록등본',
+    '주민등록초본',
+    '가족관계증명서 ',
+    '건강보험자격득실확인서',
+    '축제/행사',
+    '날씨'
+  ];
 
-    const [inputText, setInputText] = useState('');
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (inputText.trim()) {
+      onSubmitText(inputText);
+    }
+  };
 
-    const handleSubmit = () => {
-        if (inputText.trim()) {
-            onSubmitText(inputText); // App.js로 전달
-        }
-    };
+  return (
+    <div className="welcome-container">
+      <div className="welcome-top">
+        <img src={hamsterImage} alt="안내 햄스터" className="hamster-image-large" />
+        <div className="speech-bubble-large">
+          <p>안녕하세요! 무엇을 도와드릴까요?</p>
 
-    return (
-        <div className="welcome-container">
-            <img src={hamsterImage} alt="안내 햄스터" className="hamster-image-large"/>
-            <div className="speech-bubble-large">
-                <p>안녕하세요! 무엇을 도와드릴까요?</p>
+          <div className="input-area">
+            {isRecognizing ? (
+              <div className="voice-loading-area">
+                <div className="loading-spinner-welcome"></div>
+                <span>음성 인식 중...</span>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="search-form">
                 <input
-                    type="text"
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    placeholder="요청을 입력하세요..."
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  // ✅ Placeholder 텍스트를 스크린샷에 맞게 수정
+                  placeholder="직접 입력 or 아래 버튼을 누르세요."
                 />
-                <button onClick={handleSubmit}>전송</button>
-            </div>
+                <button type="submit" className="submit-btn">전송</button>
+                <button type="button" onClick={onVoiceClick} className="voice-btn">음성</button>
+              </form>
+            )}
+          </div>
         </div>
-    );
+      </div>
+
+      <div className="menu-buttons-container">
+        {menuItems.map(item => (
+          <button key={item} className="menu-button" onClick={() => onMenuClick(item)}>
+            {item}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default WelcomeScreen;
