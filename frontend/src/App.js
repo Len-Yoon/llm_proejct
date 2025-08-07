@@ -189,11 +189,14 @@ function App() {
     };
 
     return (
-        <div className="kiosk-frame">
+    <div className="kiosk-frame">
+        {/* Welcome 화면이 아닐 때만 홈 버튼 표시 */}
+        {flowState !== 'WELCOME' && (
             <button className="home-button" onClick={handleBackToHome}></button>
-            {renderCurrentScreen()}
-        </div>
-    );
+        )}
+        {renderCurrentScreen()}
+    </div>
+);
 }
 
 export default App;
