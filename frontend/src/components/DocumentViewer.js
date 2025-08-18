@@ -1,5 +1,5 @@
 // src/components/DocumentViewer.jsx
-import React from 'react';
+import React, { useRef } from 'react'; // 1. useRef를 import 합니다.
 import '../styles/DocumentViewer.css';
 
 /**
@@ -8,6 +8,9 @@ import '../styles/DocumentViewer.css';
  * - props.purpose: 문서 요청 목적 (예: 등본, 초본, 가족관계증명서 등)
  */
 function DocumentViewer({name, purpose}) {
+    // 2. iframe 요소를 가리킬 ref를 생성합니다.
+    const iframeRef = useRef(null);
+
     // 이름과 목적에 따른 문서 경로 결정
     let docSrc;
 
@@ -44,23 +47,22 @@ function DocumentViewer({name, purpose}) {
         }
     }
 
+    // 3. iframe의 내용만 인쇄하는 새로운 함수를 만듭니다.
+    const handlePrint = () => {
+        const iframe = iframeRef.current;
+        if (iframe) {
+            // iframe의 내부 window에 접근하여 print() 명령을 실행합니다.
+            iframe.contentWindow.print();
+        }
+    };
+
     return (
         <div className="document-container">
-            {/* 요청 목적 및 사용자 이름 표시 */}
-            <div className="document-info">
-                <strong>이름:</strong> {name} &nbsp;|&nbsp; <strong>요청:</strong> {purpose}
-            </div>
-
-            {/* 문서를 새 창으로 열기 */}
-            <button
-                className="open-button"
-                onClick={() => window.open(docSrc, '_blank')}
-            >
-                문서 열기
-            </button>
+            {/* ✅ 요청에 따라 이름, 요청, 문서 열기 버튼 제거 */}
 
             {/* 앱 내 미리보기용 iframe */}
             <iframe
+                ref={iframeRef} // 4. 생성한 ref를 iframe 요소에 연결합니다.
                 src={docSrc}
                 title="문서 뷰어"
                 className="document-iframe"
@@ -69,7 +71,7 @@ function DocumentViewer({name, purpose}) {
             {/* 인쇄 버튼 */}
             <button
                 className="print-button"
-                onClick={() => window.print()}
+                onClick={handlePrint} // 5. onClick 이벤트를 새로운 handlePrint 함수로 교체합니다.
             >
                 인쇄하기
             </button>

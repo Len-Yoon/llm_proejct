@@ -1,55 +1,29 @@
 // src/components/WeatherScreen.js
-import React from 'react';
+import React, { useState } from 'react';
 import hamster6 from '../assets/hamster6.png';
 import '../styles/WeatherScreen.css';
 
-function WeatherScreen({ weatherInfo, forecastData, keyword }) {
+function WeatherScreen({ weatherInfo, keyword }) {
+    // ✅ 1. 대화 기록 상태를 빈 배열로 초기화
+    const [conversation, setConversation] = useState([]);
+
     let currentWeatherData = null;
-    let dailyForecasts = [];
 
     try {
         if (weatherInfo && typeof weatherInfo === 'string') {
             currentWeatherData = JSON.parse(weatherInfo);
         }
-        if (forecastData && forecastData.length > 0) {
-            dailyForecasts = forecastData;
-        }
     } catch (e) {
         console.error("날씨 정보 파싱 실패:", e);
     }
 
-    const getFormattedDate = (offset = 0) => {
+    const getFormattedDate = () => {
         const today = new Date();
-        today.setDate(today.getDate() + offset);
+        const year = today.getFullYear();
         const month = today.getMonth() + 1;
         const day = today.getDate();
-        if (offset === 0) {
-            const year = today.getFullYear();
-            const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][today.getDay()];
-            return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}, ${dayOfWeek}요일`;
-        }
-        return `${month}.${day}`;
-    };
-
-    const translateWeatherDescription = (desc) => {
-        if (!desc) return '정보 없음';
-        const lowerDesc = desc.toLowerCase();
-        if (lowerDesc.includes('rain')) return '비';
-        if (lowerDesc.includes('overcast clouds')) return '흐림';
-        if (lowerDesc.includes('cloud')) return '구름 많음';
-        if (lowerDesc.includes('snow')) return '눈';
-        if (lowerDesc.includes('clear')) return '맑음';
-        if (lowerDesc.includes('sun')) return '맑음';
-        return desc;
-    };
-
-    const getWeatherIcon = (description) => {
-        const desc = description?.toLowerCase() || '';
-        if (desc.includes('rain')) return '🌧️';
-        if (desc.includes('cloud')) return '☁️';
-        if (desc.includes('snow')) return '❄️';
-        if (desc.includes('clear')) return '☀️';
-        return '❓';
+        const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][today.getDay()];
+        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}, ${dayOfWeek}요일`;
     };
 
     const renderCurrentWeather = () => {
@@ -64,7 +38,7 @@ function WeatherScreen({ weatherInfo, forecastData, keyword }) {
                 <div className="weather-main-info">
                     <img src={iconUrl} alt={weather[0].description} className="weather-icon" />
                     <span className="weather-temp">{Math.round(main.temp)}°</span>
-                    <span className="weather-desc">{translateWeatherDescription(weather[0].description)}</span>
+                    <span className="weather-desc">{weather.description}</span>
                 </div>
                 <div className="weather-sub-info">
                     <div className="info-item">
@@ -95,34 +69,25 @@ function WeatherScreen({ weatherInfo, forecastData, keyword }) {
             <div className="speech-bubble-large weather-bubble">
                 <h2 className="weather-title">
                     {getCityNameInKorean(currentWeatherData?.name || '도시')} 날씨 정보
-                    <span className="date-display">({getFormattedDate(0)})</span>
+                    <span className="date-display">({getFormattedDate()})</span>
                 </h2>
                 <div className="weather-info-card">
                     {renderCurrentWeather()}
                 </div>
+            </div>
 
-                <div className="forecast-container">
-                    {dailyForecasts.slice(0, 3).map((forecast, index) => {
-                        // ✅ 안전한 데이터 처리
-                        const weatherDesc = typeof forecast.weather === 'object'
-                            ? forecast.weather?.description || ''
-                            : forecast.weather || '';
-
-                        const tempMax = !isNaN(forecast.temp_max) ? Math.round(forecast.temp_max) : '?';
-                        const tempMin = !isNaN(forecast.temp_min) ? Math.round(forecast.temp_min) : '?';
-
-                        return (
-                            <div className="forecast-box" key={index}>
-                                <div className="forecast-day">{getFormattedDate(index + 1)}</div>
-                                <div className="forecast-icon">{getWeatherIcon(String(weatherDesc))}</div>
-                                <div className="forecast-temps">
-                                    <span className="temp-max">{tempMax}°</span>
-                                    <span className="temp-min">{tempMin}°</span>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+            <div className="chat-log-container">
+                {/* ✅ 2. 대화 내용이 없을 때 안내 문구 표시 */}
+                {conversation.length === 0 ? (
+                    <p className="chat-placeholder">대화 내용이 여기에 표시됩니다.</p>
+                ) : (
+                    conversation.map((msg, index) => (
+                        <div key={index} className={`chat-message ${msg.speaker}-message`}>
+                            <span className="speaker-label">{msg.speaker === 'user' ? '나' : 'AI'}</span>
+                            <p>{msg.text}</p>
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );

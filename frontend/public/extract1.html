@@ -16,15 +16,12 @@
                 `${yyyy}-${mm}-${dd} ${today.getHours().toString().padStart(2,'0')}:${today.getMinutes().toString().padStart(2,'0')}:${today.getSeconds().toString().padStart(2,'0')}`;
         });
 
-        // 시작 시 바로 시작되는 부분 STT/TTS  (멘트: 문의하신 초본 출력이 완료됐어요)
+        // 시작 시 바로 실행되는 STT/TTS (멘트: 문의하신 초본 출력이 완료됐어요)
         window.onload = async function () {
-            // 전송할 조건 변수
             const condition = "초본 출력";  // 상황에 맞게 값 변경 가능
 
-            //Fast API를 통한 백엔드 통신
             try {
-                // FastAPI로 condition 전송
-                const response = await fetch("http://localhost:8000/만든 API 명", {
+                const response = await fetch("http://localhost:8000/api/stt-tts", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ condition: condition })
@@ -43,8 +40,8 @@
 <div class="doc-container">
     <div class="doc-header">
         <span class="docinfo">
-          문서확인번호 : 2025-0806-1000-01<br/>
-          2025년 08월 06일 10:00:01
+          문서확인번호 : 2025-0818-1345-01<br/>
+          <span id="issue-datetime"></span>
         </span>
     </div>
 
@@ -56,13 +53,13 @@
     <table class="info-table">
         <tr>
             <th>성명(한자)</th>
-            <td>김상철</td>
+            <td>洪吉童</td>
             <th>주민등록번호</th>
-            <td>850505-1******</td>
+            <td>901111111111111</td>
         </tr>
         <tr>
             <th>세대주 성명</th>
-            <td>김상철</td>
+            <td>홍길동</td>
             <th>세대주와의 관계</th>
             <td>본인</td>
         </tr>
@@ -78,48 +75,43 @@
         </tr>
         </thead>
         <tbody>
-        <!-- 군입대 및 전역 정보 -->
+        <!-- 군복무 기록 -->
         <tr>
             <td class="addr-cell">-</td>
-            <td>2006-02-15</td>
-            <td>2006-02-15</td>
+            <td>2010-03-02</td>
+            <td>2010-03-02</td>
             <td>군입대</td>
         </tr>
         <tr>
             <td class="addr-cell">-</td>
-            <td>2008-10-02</td>
-            <td>2008-10-02</td>
+            <td>2012-12-01</td>
+            <td>2012-12-01</td>
             <td>전역</td>
         </tr>
 
         <!-- 주소 변경 이력 -->
         <tr>
-            <td class="addr-cell">경기도 고양시 덕양구 중앙로 55</td>
-            <td>2014-04-01</td>
-            <td>2014-04-01</td>
+            <td class="addr-cell">경기도 수원시 팔달구 장안로 123</td>
+            <td>2014-05-10</td>
+            <td>2014-05-10</td>
             <td>전입</td>
         </tr>
         <tr>
-            <td class="addr-cell">인천광역시 남동구 예술로 88</td>
-            <td>2019-09-20</td>
-            <td>2019-09-20</td>
+            <td class="addr-cell">서울특별시 강남구 테헤란로 321</td>
+            <td>2018-08-25</td>
+            <td>2018-08-25</td>
             <td>전입</td>
         </tr>
         <tr>
-            <td class="addr-cell">서울특별시 마포구 마포로 110</td>
-            <td>2023-12-10</td>
-            <td>2023-12-10</td>
+            <td class="addr-cell">서울특별시 마포구 월드컵북로 150</td>
+            <td>2023-11-15</td>
+            <td>2023-11-15</td>
             <td>전입</td>
         </tr>
 
         <tr class="ye-bak">
             <td colspan="4">== 이하 여백 ==</td>
         </tr>
-        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
-        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
-        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
-        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
-        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
         <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
         <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
         <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>

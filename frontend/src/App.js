@@ -9,6 +9,7 @@ import FestivalScreen from './components/FestivalScreen';
 import Papa from 'papaparse';
 import WeatherScreen from './components/WeatherScreen';
 
+
 function App() {
     const [flowState, setFlowState] = useState('WELCOME');
     const [isRecognizing, setIsRecognizing] = useState(false);
@@ -20,13 +21,16 @@ function App() {
     const [festivalKeyword, setFestivalKeyword] = useState('');
     const [weatherKeyword, setWeatherKeyword] = useState('');
     const [weatherData, setWeatherData] = useState(null);
-    const [forecastData, setForecastData] = useState([]); // ✅ 1. 예보 데이터 상태 추가
+    // ✅ 1. 예보 데이터 상태 제거
+    // const [forecastData, setForecastData] = useState([]);
+
 
     const dummyUsers = {
         '9011111111111': '홍길동',
         '8505051222222': '김상철',
         '0101013456789': '이영희',
     };
+
 
     const handleBackToHome = () => {
         setFlowState('WELCOME');
@@ -35,8 +39,10 @@ function App() {
         setPurpose('');
         setPinValue('');
         setUserName('');
-        setForecastData([]); // ✅ 2. 홈으로 돌아갈 때 예보 데이터 초기화
+        // ✅ 2. 홈으로 돌아갈 때 예보 데이터 초기화 로직 제거
+        // setForecastData([]);
     };
+
 
     const handleRequest = async (text) => {
         if (isRecognizing) {
@@ -44,6 +50,7 @@ function App() {
             text = '등본';
             setIsRecognizing(false);
         }
+
 
         try {
             if (text.includes('축제') || text.includes('행사')) {
@@ -60,12 +67,13 @@ function App() {
                 return;
             }
 
-            // ✅ 3. 날씨 정보 요청 시, 예보 데이터도 함께 요청하도록 수정
+
+            // ✅ 3. 날씨 정보 요청 시, 현재 날씨만 가져오도록 수정
             if (text.includes('날씨')) {
                 setRecognizedText(text);
                 setWeatherKeyword(text);
                 try {
-                    // 현재 날씨 가져오기 (기존과 동일)
+                    // 현재 날씨만 가져오기
                     const weatherRes = await fetch('http://localhost:8000/weather/', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
@@ -74,37 +82,26 @@ function App() {
                     const weatherResult = await weatherRes.json();
                     setWeatherData(JSON.stringify(weatherResult, null, 2));
 
-                    // 미래 예보 정보 가져오기 (새로운 API 호출)
-                    // 참고: 백엔드에 /weather-forecast/ 엔드포인트 구현이 필요합니다.
-                    const forecastRes = await fetch('http://localhost:8000/weather-forecast/', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({city: 'Seoul'}),
-                    });
-                    const forecastResult = await forecastRes.json();
 
-                    // 백엔드에서 받은 데이터를 프론트엔드 형식에 맞게 가공 (예시)
-                    const processedForecasts = [
-                        { day: '내일', weather: forecastResult[0]?.weather, temp_max: forecastResult[0]?.temp_max, temp_min: forecastResult[0]?.temp_min },
-                        { day: '모레', weather: forecastResult[1]?.weather, temp_max: forecastResult[1]?.temp_max, temp_min: forecastResult[1]?.temp_min },
-                        { day: '글피', weather: forecastResult[2]?.weather, temp_max: forecastResult[2]?.temp_max, temp_min: forecastResult[2]?.temp_min }
-                    ];
-                    setForecastData(processedForecasts);
+                    // ❌ 미래 예보 정보 가져오는 부분 전체 삭제
+
 
                     setFlowState('WEATHER_VIEW');
                 } catch (error) {
-                    console.error("날씨/예보 정보 로딩 실패:", error);
+                    console.error("날씨 정보 로딩 실패:", error);
                     alert("날씨 정보를 가져오는 데 실패했습니다.");
                     handleBackToHome();
                 }
                 return;
             }
 
+
             let docType = '';
             if (text.includes('등본')) docType = '주민등록등본';
             else if (text.includes('초본')) docType = '주민등록초본';
             else if (text.includes('가족관계')) docType = '가족관계증명서';
             else if (text.includes('건강보험')) docType = '건강보험자격득실확인서';
+
 
             if (docType) {
                 setPurpose(docType);
@@ -122,10 +119,12 @@ function App() {
         }
     };
 
+
     const handleVoiceClick = () => {
         setIsRecognizing(true);
         handleRequest('');
     };
+
 
     const handleKeyPress = (key) => {
         if (key === 'clear') {
@@ -137,6 +136,7 @@ function App() {
         }
     };
 
+
     const handlePinSubmit = (pin) => {
         if (dummyUsers[pin]) {
             setUserName(dummyUsers[pin]);
@@ -146,6 +146,7 @@ function App() {
             setPinValue('');
         }
     };
+
 
     const renderCurrentScreen = () => {
         switch (flowState) {
@@ -161,11 +162,10 @@ function App() {
             case 'FESTIVAL':
                 return <FestivalScreen festivals={festivalData} keyword={festivalKeyword} />;
             case 'WEATHER_VIEW':
-                // ✅ 4. WeatherScreen에 forecastData prop 전달
+                // ✅ 4. WeatherScreen에 forecastData prop 전달 제거
                 return (
                     <WeatherScreen
                         weatherInfo={weatherData}
-                        forecastData={forecastData}
                         keyword={weatherKeyword}
                     />
                 );
@@ -188,9 +188,9 @@ function App() {
         }
     };
 
+
     return (
     <div className="kiosk-frame">
-        {/* Welcome 화면이 아닐 때만 홈 버튼 표시 */}
         {flowState !== 'WELCOME' && (
             <button className="home-button" onClick={handleBackToHome}></button>
         )}
@@ -198,5 +198,6 @@ function App() {
     </div>
 );
 }
+
 
 export default App;
