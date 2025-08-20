@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8"/>
+    <title>주민등록표 초본</title>
+    <link rel="stylesheet" href="extra.css"/>
+    <script>
+        // 페이지 로드 시 오늘 날짜를 YYYY-MM-DD 형식으로 넣기
+        window.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('issue-date').textContent = `${yyyy}년 ${mm}월 ${dd}일`;
+            document.getElementById('issue-datetime').textContent =
+                `${yyyy}-${mm}-${dd} ${today.getHours().toString().padStart(2,'0')}:${today.getMinutes().toString().padStart(2,'0')}:${today.getSeconds().toString().padStart(2,'0')}`;
+        });
+
+        // 시작 시 바로 시작되는 부분 STT/TTS  (멘트: 문의하신 초본 출력이 완료됐어요)
+        window.onload = async function () {
+            // 전송할 조건 변수
+            const condition = "초본 출력";  // 상황에 맞게 값 변경 가능
+
+            //Fast API를 통한 백엔드 통신
+            try {
+                // FastAPI로 condition 전송
+                const response = await fetch("http://localhost:8000/만든 API 명", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ condition: condition })
+                });
+
+                const data = await response.json();
+                console.log("백엔드 응답:", data);
+
+            } catch (error) {
+                console.error("백엔드 호출 오류:", error);
+            }
+        };
+    </script>
+</head>
+<body>
+<div class="doc-container">
+    <div class="doc-header">
+        <span class="docinfo">
+          문서확인번호 : 2025-0806-1000-01<br/>
+          2025년 08월 06일 10:00:01
+        </span>
+    </div>
+
+    <div class="doc-title">주민등록표</div>
+    <div class="doc-subtitle">( 초&nbsp;&nbsp;본 )</div>
+
+    <div class="issuer">서울특별시 마포구청장</div>
+
+    <table class="info-table">
+        <tr>
+            <th>성명(한자)</th>
+            <td>김상철</td>
+            <th>주민등록번호</th>
+            <td>850505-1******</td>
+        </tr>
+        <tr>
+            <th>세대주 성명</th>
+            <td>김상철</td>
+            <th>세대주와의 관계</th>
+            <td>본인</td>
+        </tr>
+    </table>
+
+    <table class="list-table">
+        <thead>
+        <tr>
+            <th style="width: 45%">주소</th>
+            <th style="width: 20%">전입일</th>
+            <th style="width: 20%">신고일</th>
+            <th style="width: 15%">변동사유</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- 군입대 및 전역 정보 -->
+        <tr>
+            <td class="addr-cell">-</td>
+            <td>2006-02-15</td>
+            <td>2006-02-15</td>
+            <td>군입대</td>
+        </tr>
+        <tr>
+            <td class="addr-cell">-</td>
+            <td>2008-10-02</td>
+            <td>2008-10-02</td>
+            <td>전역</td>
+        </tr>
+
+        <!-- 주소 변경 이력 -->
+        <tr>
+            <td class="addr-cell">경기도 고양시 덕양구 중앙로 55</td>
+            <td>2014-04-01</td>
+            <td>2014-04-01</td>
+            <td>전입</td>
+        </tr>
+        <tr>
+            <td class="addr-cell">인천광역시 남동구 예술로 88</td>
+            <td>2019-09-20</td>
+            <td>2019-09-20</td>
+            <td>전입</td>
+        </tr>
+        <tr>
+            <td class="addr-cell">서울특별시 마포구 마포로 110</td>
+            <td>2023-12-10</td>
+            <td>2023-12-10</td>
+            <td>전입</td>
+        </tr>
+
+        <tr class="ye-bak">
+            <td colspan="4">== 이하 여백 ==</td>
+        </tr>
+        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
+        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
+        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
+        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
+        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
+        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
+        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
+        <tr class="empty-row"><td colspan="4">&nbsp;</td></tr>
+        </tbody>
+    </table>
+
+    <div class="notice-box">
+        이 초본은 주민등록법 시행령에 따라 개인의 인적사항 및 주소변경 사항을
+        증명합니다.
+        <br/>발급기관: 서울특별시 마포구청 | 담당자: OOO | 연락처: 02-3153-5114
+    </div>
+</div>
+</body>
+</html>
