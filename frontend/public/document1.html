@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>주민등록등본(예시)</title>
     <style>
-        /* A4 용지 크기 및 인쇄 설정 */
         @media print {
             body, html {
                 width: 210mm;
@@ -103,28 +102,6 @@
             document.getElementById('issue-date').textContent = `${yyyy}-${mm}-${dd}`;
         });
 
-
-        // 시작 시 바로 시작되는 부분 STT/TTS  (멘트: 문의하신 등본 출력이 완료됐어요.)
-        window.onload = async function () {
-            // 전송할 조건 변수
-            const condition = "등본 출력";  // 상황에 맞게 값 변경 가능
-
-            //Fast API를 통한 백엔드 통신
-            try {
-                // FastAPI로 condition 전송
-                const response = await fetch("http://localhost:8000/만든 API 명", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ condition: condition })
-                });
-
-                const data = await response.json();
-                console.log("백엔드 응답:", data);
-
-            } catch (error) {
-                console.error("백엔드 호출 오류:", error);
-            }
-        };
     </script>
 </head>
 <body>
@@ -135,7 +112,7 @@
             <td class="label">세대주 성명</td>
             <td>홍길동</td>
             <td class="label">세대구성사유</td>
-            <td>출생</td>
+            <td>혼인</td>
         </tr>
         <tr>
             <td class="label">세대주와의 관계</td>
@@ -145,7 +122,7 @@
         </tr>
         <tr>
             <td class="label">주소</td>
-            <td colspan="3">서울특별시 마포구 마포로 110 (예시동 123-45)</td>
+            <td colspan="3">서울특별시 마포구 독막로 123 (예시동 456-78)</td>
         </tr>
     </table>
     <table class="main-table">
@@ -163,9 +140,9 @@
         <tr>
             <td>1</td>
             <td>홍길동</td>
-            <td>910522-1066666</td>
+            <td>901111-1111111</td>
             <td>본인</td>
-            <td>1990-01-01</td>
+            <td>1990-11-11</td>
             <td></td>
         </tr>
         <tr>
@@ -173,13 +150,13 @@
             <td>김진주</td>
             <td>920202-2345678</td>
             <td>배우자</td>
-            <td>1980-02-02</td>
+            <td>1992-02-02</td>
             <td></td>
         </tr>
         <tr>
             <td>3</td>
             <td>홍영희</td>
-            <td>200303-3456789</td>
+            <td>200303-4456789</td>
             <td>자녀</td>
             <td>2020-03-03</td>
             <td></td>
