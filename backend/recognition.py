@@ -4,13 +4,16 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
+
 class JuminRequest(BaseModel):
     jumin: str  # 사용자 입력 주민등록번호 (13자리)
+
 
 class VerifyResponse(BaseModel):
     success: bool
     name: str | None = None
     error: str | None = None
+
 
 @router.post("/recognition/", response_model=VerifyResponse)
 async def verify_jumin(request: JuminRequest):
@@ -42,13 +45,14 @@ async def verify_jumin(request: JuminRequest):
         name=user["name"]
     )
 
+
 def fake_user_lookup(jumin: str) -> dict | None:
     """
     데모용 더미 조회 함수. 실제 DB 로직으로 교체하세요.
     """
     fake_db = {
-        "9105221066666": {"name": "홍길동"},
-        "8002022345678": {"name": "김영희"},
-        "9211112345667": {"name": "김영순"},
+        "9011111111111": {"name": "홍길동"},
+        "8505051222222": {"name": "김상철"},
+        "9701012345678": {"name": "이영희"},
     }
     return fake_db.get(jumin)

@@ -1,19 +1,30 @@
 # -*- coding: utf-8 -*-
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, UploadFile, File, Form, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from openai import OpenAI
 from dotenv import load_dotenv
+from loguru import logger
 from recognition import router as recognition_router
 from weather import router as weather_router
 
 import os
 import json
 import httpx
+import tempfile
+import subprocess
+
+BACKEND_DIR = os.path.abspath(os.path.dirname(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(BACKEND_DIR, ".."))
+
+# --- STT/TTS 통합: 모듈 import ---
+# factory_backup -> factory로 경로를 수정하고, 필요한 예외 클래스를 import합니다.
+from Utility.STT_TTS.factory import load_config, create_stt, create_tts, setup_logging
+from Utility.STT_TTS.def_exceptions import TranscriptionError, TTSError
 
 # 환경변수 불러오기
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 app = FastAPI()
@@ -28,6 +39,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- STT/TTS 통합: 엔진 초기화 ---
+# 프로젝트의 루트 디렉토리 경로를 계산하여 설정 파일을 올바르게 찾도록 합니다.
+_stt = None
+_tts = None
+
+try:
+    # .env와 config.yaml 파일 로드
+    # load_dotenv(os.path.join(ROOT_DIR, ".env"))
+    config = load_config(os.path.join(ROOT_DIR, "config.yaml"))
+    setup_logging()
+
+    # 설정 파일을 기반으로 STT, TTS 엔진 인스턴스 생성
+    _stt = create_stt(config)
+    _tts = create_tts(config)
+    logger.info("STT/TTS 엔진 인스턴스 생성 완료.")
+
+except Exception as e:
+    logger.error(f"설정 파일 로드 또는 엔진 생성 실패: {e}")
+    config = None
 
 # ✅ 주요 키워드 사전
 MINWON_KEYWORDS = {
@@ -56,12 +87,14 @@ MINWON_KEYWORDS = {
     "페스티벌": "행사 정보 조회 요청",
 }
 
+
 # ✅ 키워드 기반 분석 함수
 def get_purpose_by_keyword(user_input: str) -> str | None:
     for keyword, purpose in MINWON_KEYWORDS.items():
         if keyword in user_input:
             return purpose
     return None
+
 
 # ✅ LLM 프롬프트
 LLM_PROMPT = """
@@ -93,6 +126,97 @@ LLM_PROMPT = """
 - 예시에 없는 민원/잡담/질문 등은 반드시 '민원 목적을 알 수 없음'만 답하세요.
 - 설명, 부가 텍스트, 인삿말 절대 금지.
 """
+
+
+@app.on_event("startup")
+async def startup_event():
+    """FastAPI 앱 시작 시 STT/TTS 엔진을 초기화합니다."""
+    if _stt:
+        _stt.initialize()
+        logger.info("STT 엔진 초기화 완료.")
+    if _tts:
+        _tts.initialize()
+        logger.info("TTS 엔진 초기화 완료.")
+
+
+def _ensure_wav(input_bytes: bytes, input_mime: str | None) -> bytes:
+    """
+    브라우저에서 전달받은 오디오 파일(webm, ogg 등)을 ETRI STT API가 요구하는
+    WAV (16kHz, 1채널) 형식으로 변환합니다. 시스템에 ffmpeg가 설치되어 있어야 합니다.
+    """
+    mime = (input_mime or "").lower()
+
+    # --- STT 문제 해결: 입력 데이터 유효성 검사 ---
+    if not input_bytes or len(input_bytes) == 0:
+        logger.error("입력 오디오 데이터가 비어있습니다.")
+        raise ValueError("입력 오디오 데이터가 비어있습니다.")
+    # --- 수정 완료 ---
+
+    # 이미 wav 형식이면 변환 없이 바로 반환
+    if "wav" in mime:
+        return input_bytes
+
+    # 임시 파일 생성하여 변환 작업 수행
+    # delete=False: with 블록이 끝나도 파일이 지워지지 않도록 설정
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as src:
+        src.write(input_bytes)
+        src_path = src.name
+
+    dst_path = src_path + ".wav"
+
+    try:
+        # --- STT 문제 해결: ffmpeg 명령어 실행 전 파일 존재 확인 ---
+        if not os.path.exists(src_path):
+            raise FileNotFoundError(f"임시 파일 생성 실패: {src_path}")
+        # --- 수정 완료 ---
+
+        # ffmpeg 명령어 실행: -y(덮어쓰기), -i(입력), -ac 1(모노), -ar 16000(16kHz 샘플링)
+        command = ["ffmpeg", "-y", "-i", src_path, "-ac", "1", "-ar", "16000", dst_path]
+        result = subprocess.run(
+            command,
+            stdout=subprocess.DEVNULL,  # 성공 로그는 출력 안 함
+            stderr=subprocess.PIPE,  # 에러 로그는 캡처
+            check=True,  # 오류 발생 시 CalledProcessError 예외 발생
+            timeout=30  # 30초 타임아웃 설정
+        )
+
+        # --- STT 문제 해결: 변환 결과 파일 존재 확인 ---
+        if not os.path.exists(dst_path):
+            raise FileNotFoundError(f"오디오 변환 결과 파일이 생성되지 않았습니다: {dst_path}")
+
+        if os.path.getsize(dst_path) == 0:
+            raise ValueError("변환된 오디오 파일이 비어있습니다.")
+        # --- 수정 완료 ---
+
+        with open(dst_path, "rb") as f:
+            converted_bytes = f.read()
+
+        # --- STT 문제 해결: 변환 결과 유효성 검사 ---
+        if not converted_bytes or len(converted_bytes) == 0:
+            raise ValueError("오디오 변환 결과가 비어있습니다.")
+        # --- 수정 완료 ---
+
+        return converted_bytes
+
+    except FileNotFoundError:
+        logger.error("ffmpeg를 찾을 수 없습니다. 시스템에 ffmpeg가 설치되어 있는지 확인해주세요.")
+        raise
+    except subprocess.CalledProcessError as e:
+        error_msg = e.stderr.decode() if e.stderr else "알 수 없는 ffmpeg 오류"
+        logger.error(f"ffmpeg 오디오 변환 실패: {error_msg}")
+        raise
+    except subprocess.TimeoutExpired:
+        logger.error("ffmpeg 변환 시간 초과")
+        raise
+    finally:
+        # 임시 파일 삭제
+        for file_path in [src_path, dst_path]:
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except OSError as e:
+                    logger.warning(f"임시 파일 삭제 실패: {file_path}, 오류: {e}")
+
 
 # ✅ 텍스트 분석 API
 @app.post("/receive-text/")
@@ -140,3 +264,86 @@ async def receive_text(request: Request):
             "purpose": "분석 실패",
             "matched_keyword": None
         }
+
+
+@app.post("/api/stt")
+async def stt_once(file: UploadFile = File(...)):
+    """
+    프론트엔드에서 녹음된 오디오 파일(Blob)을 받아 텍스트로 변환하여 반환합니다.
+    """
+    try:
+        # --- STT 문제 해결: 엔진 상태 체크 추가 ---
+        if not _stt:
+            logger.error("STT 엔진이 초기화되지 않았습니다.")
+            return JSONResponse({"error": "STT 엔진이 준비되지 않았습니다."}, status_code=503)
+
+        if not _stt.is_initialized():
+            logger.error("STT 엔진이 초기화되지 않았습니다.")
+            return JSONResponse({"error": "STT 엔진이 준비되지 않았습니다."}, status_code=503)
+        # --- 수정 완료 ---
+
+        # 업로드된 파일의 내용을 바이트로 읽음
+        raw_bytes = await file.read()
+
+        # --- STT 문제 해결: 파일 크기 체크 추가 ---
+        if len(raw_bytes) == 0:
+            logger.error("업로드된 오디오 파일이 비어있습니다.")
+            return JSONResponse({"error": "오디오 파일이 비어있습니다."}, status_code=400)
+        # --- 수정 완료 ---
+
+        # 오디오를 STT API가 요구하는 16kHz/Mono WAV 형식으로 변환
+        wav_bytes = _ensure_wav(raw_bytes, file.content_type)
+        # STT 엔진으로 텍스트 변환 수행
+        text = _stt.transcribe(wav_bytes)
+        logger.info(f"STT 변환 결과: '{text}'")
+        return JSONResponse({"text": text})
+
+    except TranscriptionError as e:
+        logger.error(f"STT 변환 오류: {e}")
+        return JSONResponse({"error": str(e)}, status_code=502)
+    except Exception as e:
+        logger.error(f"STT 처리 중 알 수 없는 오류: {e}")
+        return JSONResponse({"error": "알 수 없는 STT 오류가 발생했습니다."}, status_code=500)
+
+
+# --- STT/TTS 통합: TTS API 엔드포인트 (수정) ---
+@app.post("/api/tts")
+async def tts_once(text: str = Form(...)):
+    """
+    프론트엔드에서 텍스트를 받아 음성 데이터(MP3)로 변환하여 반환합니다.
+    """
+    try:
+        # 텍스트 유효성 검사
+        if not text or not text.strip():
+            return JSONResponse({"error": "TTS 변환을 위한 텍스트가 필요합니다."}, status_code=400)
+
+        # --- TTS 문제 해결: 엔진 상태 체크 강화 ---
+        if not _tts:
+            logger.error("TTS 엔진이 초기화되지 않았습니다.")
+            return JSONResponse({"error": "TTS 엔진이 준비되지 않았습니다."}, status_code=503)
+
+        if not _tts.is_initialized():
+            logger.error("TTS 엔진이 초기화되지 않았습니다.")
+            return JSONResponse({"error": "TTS 엔진이 준비되지 않았습니다."}, status_code=503)
+        # --- 수정 완료 ---
+
+        # synthesize 메서드를 호출하여 음성 데이터를 바이트로 직접 받음
+        audio_bytes = _tts.synthesize(text)
+
+        # --- TTS 문제 해결: 오디오 바이트 유효성 검사 ---
+        if not audio_bytes or len(audio_bytes) == 0:
+            logger.error("TTS 변환 결과가 비어있습니다.")
+            return JSONResponse({"error": "TTS 변환에 실패했습니다."}, status_code=502)
+        # --- 수정 완료 ---
+
+        # gTTS는 mp3를 생성하므로 media_type을 'audio/mpeg'로 설정
+        # FastAPI의 Response 객체를 사용하여 바이트 데이터를 직접 전송
+        logger.info(f"TTS 변환 완료: '{text}' ({len(audio_bytes)} bytes)")
+        return Response(content=audio_bytes, media_type="audio/mpeg")
+
+    except TTSError as e:
+        logger.error(f"TTS 변환 오류: {e}")
+        return JSONResponse({"error": str(e)}, status_code=502)
+    except Exception as e:
+        logger.error(f"TTS 처리 중 알 수 없는 오류: {e}")
+        return JSONResponse({"error": "알 수 없는 TTS 오류가 발생했습니다."}, status_code=500)
