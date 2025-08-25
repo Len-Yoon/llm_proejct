@@ -23,15 +23,43 @@ function App() {
     const [weatherData, setWeatherData] = useState(null);
     const [weatherAiSummary, setWeatherAiSummary] = useState('');
 
+    // 최신 상태 가드
+    const flowStateRef = useRef(flowState);
+    useEffect(() => {
+        flowStateRef.current = flowState;
+    }, [flowState]);
+
     const prevFlowState = useRef(null);
     const weatherSummarySpokenRef = useRef(false);
     const welcomeListenStartedRef = useRef(false);
 
-    // 🔔 모든 예약 타이머를 한곳에서 관리
+    // 타이머
     const debouncedSpeakTidRef = useRef(null);
-    const welcomeStartTidRef = useRef(null);
-    const welcomeRetryTidRef = useRef(null);
     const weatherSummaryTidRef = useRef(null);
+
+    // 오디오 자동재생 언락
+    const [audioUnlocked, setAudioUnlocked] = useState(false);
+    const pendingSpeakRef = useRef(null);
+    const audioCtxRef = useRef(null);
+
+    // 웰컴 오디오 핸들
+    const welcomeAudioRef = useRef(null);
+
+    // 음성 흐름 훅
+    const {
+        flowState: voiceFlowState,
+        speak,               // 일반 멘트(백엔드 TTS)
+        listenAndRecognize,  // 마이크+STT 시작
+        stopSpeaking,        // 진행중 음성 중단
+    } = useVoiceFlow({onCommandReceived, onError});
+
+    // 최신 voiceFlowState 가드
+    const voiceFlowStateRef = useRef(voiceFlowState);
+    useEffect(() => {
+        voiceFlowStateRef.current = voiceFlowState;
+    }, [voiceFlowState]);
+
+    const WELCOME_MSG = '안녕하세요! 무엇을 도와드릴까요? 아래 버튼을 누르거나 음성으로 말씀해주세요.';
 
     const dummyUsers = {
         '9011111111111': '홍길동',
@@ -39,15 +67,16 @@ function App() {
         '9701012345678': '이영희',
     };
 
-    const onCommandReceived = useCallback((command) => {
+    // ====== 핸들러들 ======
+    function onCommandReceived(command) {
         setIsRecognizing(false);
         setRecognizedText(command);
-    }, []);
+    }
 
-    const onError = useCallback((error) => {
+    function onError(error) {
         setIsRecognizing(false);
         let errorMessage = '음성 인식 중 오류가 발생했습니다.';
-        switch (error.code) {
+        switch (error?.code) {
             case 'MIC_PERMISSION_DENIED':
                 errorMessage = '마이크 사용 권한을 허용해주세요.';
                 break;
@@ -63,16 +92,9 @@ function App() {
                 break;
         }
         alert(errorMessage);
-    }, []);
+    }
 
-    const {
-        flowState: voiceFlowState,
-        speak,
-        listenAndRecognize,
-        stopSpeaking, // ✅ useVoiceFlow에서 추가된 강제 중단 API 사용
-    } = useVoiceFlow({onCommandReceived, onError});
-
-    // 🔕 화면 전환 시 TTS 즉시 중단 + 예약 타이머 전부 정리 (+ 훅 내부 오디오도 중단)
+    // ====== 공용 정리 ======
     const stopAllSpeechAndTimers = useCallback(() => {
         try {
             stopSpeaking?.();
@@ -82,20 +104,70 @@ function App() {
             window?.speechSynthesis?.cancel();
         } catch (_) {
         }
-        [debouncedSpeakTidRef, welcomeStartTidRef, welcomeRetryTidRef, weatherSummaryTidRef].forEach(ref => {
+        [debouncedSpeakTidRef, weatherSummaryTidRef].forEach(ref => {
             if (ref.current) {
                 clearTimeout(ref.current);
                 ref.current = null;
             }
         });
+        const a = welcomeAudioRef.current;
+        if (a) {
+            try {
+                a.onended = null;
+                a.onerror = null;
+                a.pause();
+                a.src = '';
+            } catch (_) {
+            }
+            welcomeAudioRef.current = null;
+        }
     }, [stopSpeaking]);
 
-    // ✅ 새 멘트는 항상 깨끗한 상태에서: 중단 → 발화
+    // ====== 오디오 언락 ======
+    const unlockAudio = useCallback(async () => {
+        if (audioUnlocked) return;
+        try {
+            window?.speechSynthesis?.resume?.();
+        } catch (_) {
+        }
+        try {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) {
+                if (!audioCtxRef.current) audioCtxRef.current = new AC();
+                await audioCtxRef.current.resume();
+            }
+        } catch (_) {
+        }
+        setAudioUnlocked(true);
+        if (pendingSpeakRef.current) {
+            const text = pendingSpeakRef.current;
+            pendingSpeakRef.current = null;
+            speak(text);
+        }
+    }, [audioUnlocked, speak]);
+
+    // ====== 일반 멘트 ======
     const safeSpeak = useCallback((text) => {
         stopAllSpeechAndTimers();
+        if (!audioUnlocked) {
+            pendingSpeakRef.current = text;
+            return;
+        }
         speak(text);
-    }, [stopAllSpeechAndTimers, speak]);
+    }, [stopAllSpeechAndTimers, speak, audioUnlocked]);
 
+    // 최초 사용자 제스처에서 언락
+    useEffect(() => {
+        const handler = () => unlockAudio();
+        window.addEventListener('pointerdown', handler, {once: true});
+        window.addEventListener('keydown', handler, {once: true});
+        return () => {
+            window.removeEventListener('pointerdown', handler);
+            window.removeEventListener('keydown', handler);
+        };
+    }, [unlockAudio]);
+
+    // 홈으로
     const handleBackToHome = () => {
         setFlowState('WELCOME');
         setIsRecognizing(false);
@@ -108,9 +180,10 @@ function App() {
         setWeatherAiSummary('');
         weatherSummarySpokenRef.current = false;
         welcomeListenStartedRef.current = false;
-        stopAllSpeechAndTimers(); // ✅ 홈으로 돌아갈 때도 즉시 중단
+        stopAllSpeechAndTimers();
     };
 
+    // 서버 요청 처리
     const handleRequest = async (text) => {
         try {
             const res = await fetch('http://localhost:8000/receive-text/', {
@@ -125,12 +198,11 @@ function App() {
 
             setPurpose(docType);
 
-            // 축제 정보
+            // 축제
             if (summary.includes('축제') || summary.includes('행사')) {
                 setFestivalKeyword(text);
                 Papa.parse('/festival.csv', {
-                    download: true,
-                    header: true,
+                    download: true, header: true,
                     complete: (result) => {
                         setFestivalData(result.data);
                         setFlowState('FESTIVAL');
@@ -139,7 +211,7 @@ function App() {
                 return;
             }
 
-            // 날씨 정보
+            // 날씨
             if (summary.includes('날씨')) {
                 setWeatherKeyword(text);
                 const weatherRes = await fetch('http://localhost:8000/weather/', {
@@ -147,23 +219,19 @@ function App() {
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({city: 'Seoul'}),
                 });
-
                 if (!weatherRes.ok) {
                     const t = await weatherRes.text();
                     throw new Error(`날씨 API 오류: ${weatherRes.status} ${t}`);
                 }
-
                 const weatherResult = await weatherRes.json();
                 setWeatherData(JSON.stringify(weatherResult, null, 2));
-
                 const aiSummary = weatherResult?._meta?.ai_summary_ko ?? '';
                 setWeatherAiSummary(aiSummary);
-
                 setFlowState('WEATHER_VIEW');
                 return;
             }
 
-            // 증명서 및 문서
+            // 증명서/문서
             let docName = '';
             if (summary.includes('등본')) docName = '주민등록등본';
             else if (summary.includes('초본')) docName = '주민등록초본';
@@ -187,19 +255,14 @@ function App() {
         }
     };
 
-    // 화면 전환될 때마다: 진행 중 TTS 즉시 중단 + 모든 예약 타이머 클리어
+    // 화면 전환 정리
     useEffect(() => {
         stopAllSpeechAndTimers();
-        // WEATHER_VIEW로 진입 시 요약-한번만 낭독 플래그 리셋
-        if (flowState === 'WEATHER_VIEW') {
-            weatherSummarySpokenRef.current = false;
-        }
-        if (flowState === 'WELCOME') {
-            welcomeListenStartedRef.current = false;
-        }
+        if (flowState === 'WEATHER_VIEW') weatherSummarySpokenRef.current = false;
+        if (flowState === 'WELCOME') welcomeListenStartedRef.current = false;
     }, [flowState, stopAllSpeechAndTimers]);
 
-    // recognizedText 변경 시 handleRequest 호출
+    // 음성 인식 결과 처리
     useEffect(() => {
         if (recognizedText && recognizedText.trim()) {
             handleRequest(recognizedText);
@@ -208,34 +271,17 @@ function App() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [recognizedText]);
 
-    // 상태별 안내 멘트 (WELCOME은 직접 청취 시작)
+    // 상태별 멘트 (WELCOME 자동 멘트 없음 — 얼굴 인식 때만)
     useEffect(() => {
-        // 이전 타이머 정리 (안전)
         if (debouncedSpeakTidRef.current) {
             clearTimeout(debouncedSpeakTidRef.current);
             debouncedSpeakTidRef.current = null;
         }
-
         debouncedSpeakTidRef.current = setTimeout(() => {
             if (flowState === prevFlowState.current) return;
             prevFlowState.current = flowState;
 
-            if (flowState === 'WELCOME') {
-                safeSpeak('안녕하세요! 무엇을 도와드릴까요? 아래 버튼을 누르거나 음성으로 말씀해주세요.');
-                if (!welcomeListenStartedRef.current) {
-                    welcomeListenStartedRef.current = true;
-                    // 멘트 잠시 후 청취 시작
-                    welcomeStartTidRef.current = setTimeout(() => {
-                        listenAndRecognize();
-                        // 드문 실패 대비 재시도
-                        welcomeRetryTidRef.current = setTimeout(() => {
-                            if (!(voiceFlowState === 'LISTENING' || voiceFlowState === 'PROCESSING')) {
-                                listenAndRecognize();
-                            }
-                        }, 3000);
-                    }, 1000);
-                }
-            } else if (flowState === 'PIN_INPUT') {
+            if (flowState === 'PIN_INPUT') {
                 safeSpeak('주민등록번호 열 세자리를 입력해주세요.');
             } else if (flowState === 'DOCUMENT_VIEW') {
                 if (purpose) {
@@ -258,20 +304,18 @@ function App() {
                 debouncedSpeakTidRef.current = null;
             }
         };
-    }, [flowState, purpose, safeSpeak, listenAndRecognize, voiceFlowState]);
+    }, [flowState, purpose, safeSpeak]);
 
-    // 요약이 “준비되는 순간” 한 번만 읽기
+    // 날씨 요약 도착 시 1회만 읽기
     useEffect(() => {
         if (flowState !== 'WEATHER_VIEW') return;
         if (weatherSummarySpokenRef.current) return;
         if (!weatherAiSummary || !weatherAiSummary.trim()) return;
 
-        // 이전 타이머 정리 (안전)
         if (weatherSummaryTidRef.current) {
             clearTimeout(weatherSummaryTidRef.current);
             weatherSummaryTidRef.current = null;
         }
-
         weatherSummaryTidRef.current = setTimeout(() => {
             safeSpeak(weatherAiSummary);
             weatherSummarySpokenRef.current = true;
@@ -285,15 +329,181 @@ function App() {
         };
     }, [flowState, weatherAiSummary, safeSpeak]);
 
+    // 표시용
     useEffect(() => {
         setIsRecognizing(voiceFlowState === 'LISTENING' || voiceFlowState === 'PROCESSING');
     }, [voiceFlowState]);
 
-    const handleVoiceClick = () => {
+    // ====== 지연 최소화를 위한 TTS 사전 로드 & 폴백 ======
+
+    // JSON → FormData → GET 폴백, 응답(JSON/바이너리) 자동 처리
+    async function fetchTTSAudio({text, voice, speed}) {
+        const endpoint = '/api/tts';
+
+        const makeAudioFromResponse = async (res) => {
+            const ct = (res.headers.get('content-type') || '').toLowerCase();
+            if (ct.includes('application/json')) {
+                const j = await res.json();
+                const url = j.audioUrl || j.url || j.audio_url || j.location;
+                if (!url) throw new Error('TTS JSON 응답에 audioUrl 없음');
+                const a = new Audio(url);
+                a.preload = 'auto';
+                return a;
+            }
+            // 오디오 스트림/바이너리(혹은 content-type 미설정)
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = new Audio(url);
+            a.preload = 'auto';
+            return a;
+        };
+
+        // ① JSON 바디 시도
+        let res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({text, voice, speed}),
+        });
+
+        // 422/415 → ② FormData 재시도 (FastAPI Form(...) 대응)
+        if (res.status === 422 || res.status === 415) {
+            const fd = new FormData();
+            fd.append('text', text);
+            if (voice) fd.append('voice', voice);
+            if (speed != null) fd.append('speed', String(speed));
+            res = await fetch(endpoint, {method: 'POST', body: fd});
+        }
+
+        // 실패면 ③ GET 폴백
+        if (!res.ok) {
+            const q = new URLSearchParams({text, ...(voice ? {voice} : {}), ...(speed != null ? {speed} : {})}).toString();
+            res = await fetch(`${endpoint}?${q}`, {method: 'GET'});
+        }
+
+        if (!res.ok) {
+            const t = await res.text().catch(() => '');
+            throw new Error(`TTS 실패: ${res.status} ${t}`);
+        }
+        return makeAudioFromResponse(res);
+    }
+
+    // 사전 로드 캐시(Map: text -> Promise<HTMLAudioElement>)
+    const ttsCacheRef = useRef(new Map());
+
+    // 웰컴 멘트 사전 로드: 오디오를 미리 받아두고 canplay(=버퍼 일부 준비) 시점까지만 대기
+    const prefetchTTSAudio = useCallback(async (text) => {
+        const cache = ttsCacheRef.current;
+        if (cache.has(text)) return cache.get(text);
+        const p = (async () => {
+            const a = await fetchTTSAudio({text /*, voice: 'your-voice-id', speed: 1.0 */});
+            await new Promise((resolve) => {
+                let resolved = false;
+                const done = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        resolve();
+                    }
+                };
+                // canplay면 충분(완전 다운로드 필요 X)
+                a.addEventListener('canplay', done, {once: true});
+                // 혹시 로딩이 너무 오래 걸리면 700ms 후 진행
+                setTimeout(done, 700);
+                try {
+                    a.load();
+                } catch {
+                }
+            });
+            return a;
+        })();
+        cache.set(text, p);
+        return p;
+    }, []);
+
+    // 앱 시작 시/ WELCOME 진입 시 사전 로드
+    useEffect(() => {
+        prefetchTTSAudio(WELCOME_MSG).catch(() => {
+        });
+    }, [prefetchTTSAudio]);
+    useEffect(() => {
+        if (flowState === 'WELCOME') prefetchTTSAudio(WELCOME_MSG).catch(() => {
+        });
+    }, [flowState, prefetchTTSAudio]);
+
+    // 기존 목소리로 웰컴 멘트 재생(언락과 병렬) → 끝나면 resolve
+    const speakWelcomeWithBackend = useCallback(async (text) => {
+        stopAllSpeechAndTimers(); // 중복 방지
+
+        // 언락과 사전 로드를 병렬로
+        const unlockP = unlockAudio();
+        const prefetchP = prefetchTTSAudio(text);
+
+        const a0 = await prefetchP; // 사전 로딩된 오디오
+        await unlockP.catch(() => {
+        });
+
+        // 새 인스턴스로 즉시 재생(기존 엘리먼트 재생 재시도 지연 방지)
+        const a = new Audio(a0.src);
+        a.preload = 'auto';
+
+        return new Promise((resolve, reject) => {
+            try {
+                const prev = welcomeAudioRef.current;
+                if (prev) {
+                    try {
+                        prev.onended = null;
+                        prev.onerror = null;
+                        prev.pause();
+                        prev.src = '';
+                    } catch {
+                    }
+                }
+
+                a.onended = () => resolve();
+                a.onerror = (e) => reject(e);
+                welcomeAudioRef.current = a;
+
+                // 이미 버퍼가 준비됐으므로 바로 재생 시도
+                a.play().catch(async (err) => {
+                    // 정책으로 막히면 언락 재시도 후 한번 더
+                    try {
+                        await unlockAudio();
+                        await a.play();
+                        resolve();
+                    } catch (e2) {
+                        reject(err || e2);
+                    }
+                });
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }, [stopAllSpeechAndTimers, unlockAudio, prefetchTTSAudio]);
+
+    // 멘트 후 자동으로 마이크 시작
+    const startMicIfWelcome = useCallback(() => {
+        if (flowStateRef.current !== 'WELCOME') return;
+        if (welcomeListenStartedRef.current) return;
+        if (voiceFlowStateRef.current === 'LISTENING' || voiceFlowStateRef.current === 'PROCESSING') return;
+
+        welcomeListenStartedRef.current = true;
         setIsRecognizing(true);
         listenAndRecognize();
-    };
+    }, [listenAndRecognize]);
 
+    // 얼굴 인식/마이크 버튼 공용 트리거
+    const handleVoiceClick = useCallback(async () => {
+        if (voiceFlowStateRef.current === 'LISTENING' || voiceFlowStateRef.current === 'PROCESSING') return;
+
+        try {
+            await speakWelcomeWithBackend(WELCOME_MSG); // 기존 목소리 웰컴(사전 로드로 즉시 재생)
+            startMicIfWelcome();                        // 끝나자마자 마이크 시작
+        } catch (e) {
+            console.warn('welcome TTS failed, start mic immediately:', e);
+            startMicIfWelcome();                        // 실패 시 바로 마이크 시작
+        }
+    }, [speakWelcomeWithBackend, startMicIfWelcome]);
+
+    // 출력
     const handlePrint = () => {
         if (purpose.includes('등본') || purpose.includes('초본')) {
             safeSpeak(`${purpose}이 출력되었습니다.`);
@@ -303,14 +513,11 @@ function App() {
         window.print();
     };
 
+    // 키패드
     const handleKeyPress = (key) => {
-        if (key === 'clear') {
-            setPinValue('');
-        } else if (key === 'submit') {
-            handlePinSubmit(pinValue);
-        } else if (pinValue.length < 13) {
-            setPinValue((prev) => prev + key);
-        }
+        if (key === 'clear') setPinValue('');
+        else if (key === 'submit') handlePinSubmit(pinValue);
+        else if (pinValue.length < 13) setPinValue(prev => prev + key);
     };
 
     const handlePinSubmit = (pin) => {
@@ -323,6 +530,7 @@ function App() {
         }
     };
 
+    // 화면 렌더
     const renderCurrentScreen = () => {
         switch (flowState) {
             case 'WELCOME':
@@ -330,20 +538,14 @@ function App() {
                     <WelcomeScreen
                         onMenuClick={(text) => setRecognizedText(text)}
                         onSubmitText={(text) => setRecognizedText(text)}
-                        onVoiceClick={handleVoiceClick}
+                        onVoiceClick={handleVoiceClick}    // 얼굴 인식 시 호출
                         isRecognizing={isRecognizing}
                     />
                 );
             case 'FESTIVAL':
                 return <FestivalScreen festivals={festivalData} keyword={festivalKeyword}/>;
             case 'WEATHER_VIEW':
-                return (
-                    <WeatherScreen
-                        weatherInfo={weatherData}
-                        keyword={weatherKeyword}
-                        summary={weatherAiSummary}
-                    />
-                );
+                return <WeatherScreen weatherInfo={weatherData} keyword={weatherKeyword} summary={weatherAiSummary}/>;
             case 'PIN_INPUT':
                 return (
                     <div className="pin-screen">

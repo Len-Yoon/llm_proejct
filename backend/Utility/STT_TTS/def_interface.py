@@ -22,35 +22,32 @@ class IModel(ABC):
         """모듈의 리소스를 명시적으로 해제하는 메서드."""
         pass
 
-# --- STT 인터페이스 (수정 없음) ---
+# --- STT 인터페이스 ---
 class ISTT(IModel):
     """
     STT(Speech-to-Text) 모듈을 위한 인터페이스.
-    오디오 데이터를 텍스트로 변환하는 'transcribe' 메서드를 반드시 구현해야 합니다.
     """
     @abstractmethod
     def transcribe(self, audio_bytes: bytes) -> str:
         """오디오 바이트를 텍스트로 변환하는 메서드."""
         pass
 
-# --- TTS 인터페이스 (수정된 부분) ---
+# --- TTS 인터페이스 ---
 # 웹 환경에 맞게, 음성을 직접 재생하는 'speak' 대신
 # 음성 데이터(bytes)를 생성하여 반환하는 'synthesize'로 메서드를 변경합니다.
 class ITTS(IModel):
     """
     TTS(Text-to-Speech) 모듈을 위한 인터페이스.
-    텍스트를 음성 데이터(bytes)로 변환하는 'synthesize' 메서드를 반드시 구현해야 합니다.
     """
     @abstractmethod
     def synthesize(self, text: str) -> bytes:
         """텍스트를 음성 데이터(bytes)로 변환하여 반환하는 메서드."""
         pass
 
-# --- VAD 인터페이스 (수정 없음) ---
+# --- VAD 인터페이스 ---
 class IVAD(IModel):
     """
     VAD(Voice Activity Detector) 모듈을 위한 인터페이스.
-    음성 입력을 감지하고 해당 오디오 데이터를 반환하는 비동기 메서드 'listen'을 반드시 구현해야 합니다.
     """
     @abstractmethod
     async def listen(self) -> Optional[bytes]:

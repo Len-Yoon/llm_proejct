@@ -150,7 +150,6 @@ def _ensure_wav(input_bytes: bytes, input_mime: str | None) -> bytes:
     if not input_bytes or len(input_bytes) == 0:
         logger.error("입력 오디오 데이터가 비어있습니다.")
         raise ValueError("입력 오디오 데이터가 비어있습니다.")
-    # --- 수정 완료 ---
 
     # 이미 wav 형식이면 변환 없이 바로 반환
     if "wav" in mime:
@@ -227,12 +226,13 @@ async def receive_text(request: Request):
         user_input = data.get("text", "")
         print("📨 받은 텍스트:", user_input)
 
-        # 1차 키워드 배호
+        # 1차 키워드 의포 파악
         keyword_purpose = get_purpose_by_keyword(user_input)
         print("🔍 키워드 매칭:", keyword_purpose)
 
-        # 2차 LLM 배호 요청
-        system_prompt = "너는 공공기관 키오스크 AI야. 사용자 목적만 예시처럼 한 줄로 써줘. 예시 없는 건 '민원 목적을 알 수 없음'만 쓰면 된다."
+        # 2차 LLM 의도 파악 요청
+        system_prompt = ("너는 공공기관 키오스크 AI야. 사용자 목적만 예시처럼 "
+                         "한 줄로 써줘. 예시 없는 건 '민원 목적을 알 수 없음'만 쓰면 된다.")
         if keyword_purpose:
             user_prompt = f"{LLM_PROMPT}\n[예상 목적: {keyword_purpose}]\n\"{user_input}\""
         else:
