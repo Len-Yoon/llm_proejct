@@ -247,7 +247,7 @@ async def receive_text(request: Request):
         )
 
         summary = response.choices[0].message.content.strip()
-        print("🧐 LLM 배호 결과:", summary)
+        print("🧐 LLM 결과:", summary)
 
         return {
             "source": "llm",
