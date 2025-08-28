@@ -92,5 +92,4 @@ export const speakText = async (text) => {
             }
         }
     }
-    // ----- 수정 끝 -----
 };

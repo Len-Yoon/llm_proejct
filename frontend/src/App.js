@@ -47,6 +47,7 @@ function App() {
         speak,               // 백엔드 TTS 재생
         listenAndRecognize,  // STT 시작
         stopSpeaking,        // TTS 중단
+        stopListening,       // 👈 STT 중단 추가로 받아옴
     } = useVoiceFlow({onCommandReceived, onError});
 
     const voiceFlowStateRef = useRef(voiceFlowState);
@@ -173,7 +174,24 @@ function App() {
         setWeatherAiSummary('');
         weatherSummarySpokenRef.current = false;
         welcomeListenStartedRef.current = false;
+
+        // 1) TTS/타이머/웰컴오디오 정리
         stopAllSpeechAndTimers();
+
+        // 2) STT 정리 (공식)
+        try {
+            stopListening?.();
+        } catch (_) {
+        }
+
+        // 3) STT 폴백: 혹시 남은 마이크 트랙/스트림도 안전하게 종료
+        try {
+            if (window?.mediaStreamRef?.current) {
+                window.mediaStreamRef.current.getTracks().forEach(track => track.stop());
+                window.mediaStreamRef.current = null;
+            }
+        } catch (_) {
+        }
     };
 
     // ---- TTS 프리페치 & 폴백 ----
@@ -196,8 +214,7 @@ function App() {
             return a;
         };
         let res = await fetch(endpoint, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({text, voice, speed}),
         });
         if (res.status === 422 || res.status === 415) {
@@ -349,6 +366,16 @@ function App() {
         }
     };
 
+    // ---- 메뉴 버튼 클릭: TTS 정지 후 바로 다음 스텝 ----
+    const handleMenuClick = useCallback((text) => {
+        stopAllSpeechAndTimers();                 // TTS/타이머 즉시 정지
+        if (pendingSpeakRef.current) pendingSpeakRef.current = null;
+        setRecognizedText(text);                  // 다음 단계로 바로 라우팅
+        // (옵션) 버튼 클릭 후 STT도 바로 켜고 싶다면:
+        // setIsRecognizing(true);
+        // listenAndRecognize();
+    }, [stopAllSpeechAndTimers]);
+
     // ---- 서버 요청 → 라우팅 ----
     const handleRequest = async (text) => {
         try {
@@ -444,8 +471,10 @@ function App() {
                 safeSpeak('주민등록번호 열 세자리를 입력해주세요.');
             } else if (flowState === 'DOCUMENT_VIEW') {
                 if (purpose) {
-                    if (purpose.includes('등본') || purpose.includes('초본')) safeSpeak(`${purpose}이 준비되었습니다. 인쇄를 원하시면 인쇄 버튼을 눌러주세요.`);
-                    else safeSpeak(`${purpose}가 준비되었습니다. 인쇄를 원하시면 인쇄 버튼을 눌러주세요.`);
+                    if (purpose.includes('등본') || purpose.includes('초본'))
+                        safeSpeak(`${purpose}이 준비되었습니다. 인쇄를 원하시면 인쇄 버튼을 눌러주세요.`);
+                    else
+                        safeSpeak(`${purpose}가 준비되었습니다. 인쇄를 원하시면 인쇄 버튼을 눌러주세요.`);
                 }
             } else if (flowState === 'FESTIVAL') {
                 safeSpeak('서울시 축제 정보를 안내합니다.');
@@ -493,7 +522,7 @@ function App() {
             case 'WELCOME':
                 return (
                     <WelcomeScreen
-                        onMenuClick={(text) => setRecognizedText(text)}
+                        onMenuClick={handleMenuClick}
                         onSubmitText={(text) => setRecognizedText(text)}
                         onVoiceClick={handleVoiceClick}
                         isRecognizing={isRecognizing}
@@ -520,7 +549,7 @@ function App() {
             default:
                 return (
                     <WelcomeScreen
-                        onMenuClick={(text) => setRecognizedText(text)}
+                        onMenuClick={handleMenuClick}
                         onSubmitText={(text) => setRecognizedText(text)}
                         onVoiceClick={handleVoiceClick}
                         isRecognizing={isRecognizing}
