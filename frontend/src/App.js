@@ -47,7 +47,7 @@ function App() {
         speak,               // 백엔드 TTS 재생
         listenAndRecognize,  // STT 시작
         stopSpeaking,        // TTS 중단
-        stopListening,       // 👈 STT 중단 추가로 받아옴
+        stopListening,       // STT 중단
     } = useVoiceFlow({onCommandReceived, onError});
 
     const voiceFlowStateRef = useRef(voiceFlowState);
@@ -89,15 +89,65 @@ function App() {
         alert(errorMessage);
     }
 
-    // ---- 오디오/타이머 정리 ----
+    // ---- 기본 TTS만 즉시 정지 (강화: 모든 <audio> 하드스톱 + WebAudio 무음) ----
+    const stopBasicTTS = useCallback(() => {
+        // 1) 훅 내부 TTS(Web Speech 등)
+        try {
+            stopSpeaking?.();
+        } catch {
+        }
+
+        // 2) 브라우저 Web Speech API
+        try {
+            window?.speechSynthesis?.cancel();
+        } catch {
+        }
+
+        // 3) 우리가 추적하는 백엔드 TTS(<audio>)
+        const a = welcomeAudioRef.current;
+        if (a) {
+            try {
+                a.pause();
+                a.currentTime = 0;
+                a.src = '';
+            } catch {
+            }
+            welcomeAudioRef.current = null;
+        }
+
+        // 4) ✅ 문서 내 존재하는 모든 <audio>를 하드 스톱 (날씨 TTS 등 별도 <audio> 포함)
+        try {
+            const audios = document.querySelectorAll('audio');
+            audios.forEach(el => {
+                try {
+                    el.pause();
+                    el.currentTime = 0;
+                    el.src = '';
+                } catch {
+                }
+            });
+        } catch {
+        }
+
+        // 5) (선택) WebAudio 경로도 즉시 무음 처리
+        try {
+            if (audioCtxRef.current && audioCtxRef.current.state === 'running') {
+                audioCtxRef.current.suspend();
+            }
+        } catch {
+        }
+        // ※ pendingSpeakRef나 타이머는 건드리지 않음 — “지금 재생 중인 TTS만” 끊는 용도
+    }, [stopSpeaking]);
+
+    // ---- 오디오/타이머 정리 (전체 정리용: 기존 그대로) ----
     const stopAllSpeechAndTimers = useCallback(() => {
         try {
             stopSpeaking?.();
-        } catch (_) {
+        } catch {
         }
         try {
             window?.speechSynthesis?.cancel();
-        } catch (_) {
+        } catch {
         }
         [debouncedSpeakTidRef, weatherSummaryTidRef].forEach(ref => {
             if (ref.current) {
@@ -112,7 +162,7 @@ function App() {
                 a.onerror = null;
                 a.pause();
                 a.src = '';
-            } catch (_) {
+            } catch {
             }
             welcomeAudioRef.current = null;
         }
@@ -123,7 +173,7 @@ function App() {
         if (audioUnlocked) return;
         try {
             window?.speechSynthesis?.resume?.();
-        } catch (_) {
+        } catch {
         }
         try {
             const AC = window.AudioContext || window.webkitAudioContext;
@@ -131,7 +181,7 @@ function App() {
                 if (!audioCtxRef.current) audioCtxRef.current = new AC();
                 await audioCtxRef.current.resume();
             }
-        } catch (_) {
+        } catch {
         }
         setAudioUnlocked(true);
         if (pendingSpeakRef.current) {
@@ -161,8 +211,12 @@ function App() {
         speak(text);
     }, [stopAllSpeechAndTimers, speak, audioUnlocked]);
 
-    // ---- 홈으로 ----
-    const handleBackToHome = () => {
+    // ---- 홈으로 (요청하신 기능: 먼저 "기본 TTS만" 끊고, 나머지는 기존 로직 유지) ----
+    const handleBackToHome = useCallback(() => {
+        // A) 기본 TTS 즉시 정지 (모든 <audio> 포함)
+        stopBasicTTS();
+
+        // B) 이하 기존 네 로직 유지 (상태 리셋 + 전체 정리 + STT 종료 등)
         setFlowState('WELCOME');
         setIsRecognizing(false);
         setRecognizedText('');
@@ -175,24 +229,24 @@ function App() {
         weatherSummarySpokenRef.current = false;
         welcomeListenStartedRef.current = false;
 
-        // 1) TTS/타이머/웰컴오디오 정리
+        // 1) TTS/타이머/웰컴오디오 정리 (기존)
         stopAllSpeechAndTimers();
 
-        // 2) STT 정리 (공식)
+        // 2) STT 정리 (기존)
         try {
             stopListening?.();
-        } catch (_) {
+        } catch {
         }
 
-        // 3) STT 폴백: 혹시 남은 마이크 트랙/스트림도 안전하게 종료
+        // 3) STT 폴백: 혹시 남은 마이크 트랙/스트림도 안전하게 종료 (기존)
         try {
             if (window?.mediaStreamRef?.current) {
                 window.mediaStreamRef.current.getTracks().forEach(track => track.stop());
                 window.mediaStreamRef.current = null;
             }
-        } catch (_) {
+        } catch {
         }
-    };
+    }, [stopBasicTTS, stopAllSpeechAndTimers, stopListening]);
 
     // ---- TTS 프리페치 & 폴백 ----
     async function fetchTTSAudio({text, voice, speed}) {
@@ -561,7 +615,12 @@ function App() {
     return (
         <div className="kiosk-frame">
             {flowState !== 'WELCOME' && (
-                <button className="home-button" onClick={handleBackToHome}></button>
+                <button
+                    className="home-button"
+                    onClick={handleBackToHome}
+                    aria-label="홈으로"
+                    title="홈으로"
+                />
             )}
             {renderCurrentScreen()}
         </div>
