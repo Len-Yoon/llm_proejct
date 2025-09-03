@@ -1,3 +1,6 @@
+<img width="715" height="152" alt="image" src="https://github.com/user-attachments/assets/a99ef143-554e-456e-a5cc-75046a3d3943" />
+
+
 # 📌 Kiosk Voice Interaction Project
 
 > 얼굴 인식 + 음성 인터랙션 + 문서 출력/날씨/축제 정보 안내 키오스크 애플리케이션  
