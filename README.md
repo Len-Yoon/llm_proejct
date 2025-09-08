@@ -1,104 +1,144 @@
 <img width="715" height="152" alt="image" src="https://github.com/user-attachments/assets/a99ef143-554e-456e-a5cc-75046a3d3943" />
 
 
-# 📌 Kiosk Voice Interaction Project
+# 🏪 AI Agent 기반 공공 대화형 무인 키오스크
 
-> 얼굴 인식 + 음성 인터랙션 + 문서 출력/날씨/축제 정보 안내 키오스크 애플리케이션  
+<details>
+<summary> 📌 프로젝트 개요 </summary>
+  
+본 프로젝트는 공공기관 및 무인 민원 창구 환경에서 활용 가능한 **LLM 기반 대화형 무인 키오스크**를 개발하는 것을 목표로 한다.  
+사용자는 **얼굴 인식(Face Recognition)** 및 **음성 인식(Whisper STT, VAD)** 을 통해 시스템과 상호작용하며,  
+AI Agent는 입력된 발화를 **의도(Intent)** 단위로 분석하여 민원 문서 조회, 날씨 안내 등 다양한 공공 서비스를 제공한다.  
+</details>
 
----
 
-## 🚀 주요 기능
 
-### 🎤 음성 인터랙션
-- **TTS(Text-To-Speech)**: 백엔드 TTS API 연동 (`/api/tts` 엔드포인트)  
-  - JSON → FormData → GET 요청 3단계 폴백 지원
-  - 오디오 `canplay` 이벤트 시점까지만 프리페치 → 지연 최소화  
-- **STT(Speech-To-Text)**: 마이크 입력 후 인식 결과를 자동 처리  
-  - `LISTENING` / `PROCESSING` 상태 관리
-  - 오류(무음, 자신감 낮음, 마이크 권한 거부 등) 핸들링  
-- **자동 플로우**: 웰컴 멘트 재생 → 종료 즉시 마이크 자동 시작  
+<details>
+  <summary>🚀 주요 기능 </summary>
 
-### 👤 얼굴 감지 & 웰컴 트리거
-- 카메라 스트림으로 얼굴 감지 (TensorFlow BlazeFace 모델 활용)
-- 얼굴이 감지되면 웰컴 멘트 자동 실행
-- 멘트 종료 후 곧바로 STT 청취 시작  
+- **사용자 인식**: BlazeFace 기반 얼굴 인식, 세션 토큰 발급 및 만료 관리  
+- **음성 인터페이스**: Whisper STT, OpenAI TTS, VAD 적용  
+- **대화 처리**: LLM Agent를 통한 질의 분석, 문서 검색/날씨 API 연동  
+- **응답 출력**: 음성 및 화면 UI 동시 제공  
+</details>
 
-### 📑 문서 서비스
-- 사용자가 원하는 문서 종류를 음성/버튼으로 요청  
-  - 주민등록등본  
-  - 주민등록초본  
-  - 가족관계증명서  
-  - 건강보험자격득실확인서  
-- 주민등록번호 13자리 입력 → 더미 사용자 매칭 (`dummyUsers`)
-- 문서 뷰어 표시 후 인쇄 기능 (`window.print()` 활용)  
 
-### ☀️ 날씨 안내
-- `/weather/` API 호출 (현재는 `Seoul` 고정)
-- 백엔드 AI가 생성한 한국어 요약(`ai_summary_ko`) 제공
-- 기본 멘트(TTS) 후 → **AI 요약 멘트 1회만 자동 재생**  
+<details>
+  <summary> ⚠️ 오류 발생 케이스</summary>
 
-### 🎉 축제/행사 안내
-- `PapaParse`로 `/festival.csv` 파일 파싱
-- 사용자가 요청한 키워드 기반 축제 리스트 표시
-- 진입 시 TTS 멘트: “서울시 축제 정보를 안내합니다.”  
+- **얼굴 인식**: 조도/화질 문제, 다중 사용자 충돌  
+- **음성 인식**: 잡음 환경 오류, 긴 발화 중단  
+- **대화 처리**: LLM 응답 지연, 범위 외 질의  
+- **서비스 기능**: 외부 API 지연/실패, 권한 없는 문서 접근  
+  
+</details>
 
-### 🧭 음성 요청 처리 플로우
-1. 사용자가 음성/버튼으로 요청  
-2. `/receive-text/` 서버 호출 → 요약/목적(`summary`, `purpose`) 응답  
-3. 목적에 따라 플로우 전환  
-   - `축제/행사` → FESTIVAL 화면  
-   - `날씨` → WEATHER_VIEW 화면  
-   - 문서(등본/초본/가족관계/건강보험) → PIN 입력 화면  
-   - 그 외 → **알 수 없는 요청 멘트 TTS 후 자동 듣기 재시작**  
+<details>
+  <summary> 🧪 테스트 고려사항</summary>
 
-### 🔊 음성 UX 디테일
-- **TTS 사전 로드**: 웰컴 멘트는 앱 시작 시 미리 로드 → 즉시 재생  
-- **오디오 언락**: 첫 사용자 제스처(pointerdown/keydown)에서 오디오 컨텍스트 활성화 → 브라우저 자동재생 제한 대응  
-- **중복 방지**: 새 멘트 재생 시 기존 TTS/타이머 모두 정리 (`stopAllSpeechAndTimers`)  
-- **sayThenListen 헬퍼**: 멘트가 끝나면 자동으로 STT 시작하는 래퍼  
+  1. **멀티모달 동시 입력**: 얼굴/음성 인식 충돌 처리  
+2. **성능 검증**: 라즈베리파이 환경 BlazeFace FPS, Whisper STT 실시간성  
+3. **대화 품질**: VAD 적용 후 음성 끊김 여부, 캐싱 응답 일관성  
+4. **장애 대응**: API 실패 시 Fallback, 네트워크 단절 시 안내 메시지  
+</details>
 
----
 
-## 🛠️ 기술 스택
+# 📊 Sequence Diagram
+<details>
+  <summary> 얼굴 존재 감지 & 세션 시작 (BlazeFace + TFJS → /session/start) </summary>
 
-- **Frontend**: React  
-- **음성 처리**: Web Audio API + SpeechRecognition (STT) + 백엔드 TTS API  
-- **CSV 파싱**: PapaParse  
-- **스타일링**: CSS (단순 UI 프레임)  
-- **기타**:  
-  - `window.print()`를 활용한 간단한 문서 인쇄  
-  - 상태 관리: React Hooks (`useState`, `useEffect`, `useRef`, `useCallback`)  
+  <img width="1050" height="564" alt="1 얼굴 존재 감지   세션 시작" src="https://github.com/user-attachments/assets/8a1982b3-56e7-452a-ad24-ea06f097ba16" />
 
----
+</details>
 
-## 📂 주요 컴포넌트 구조
+<details>
+  <summary>음성 업로드 → 오디오 정규화(ffmpeg) → STT(OpenAI)</summary>
 
-- `App.js` : 전체 플로우 관리 (TTS/STT/화면 전환/타이머/오디오 언락)  
-- `WelcomeScreen.jsx` : 웰컴 화면, 얼굴 감지/버튼 입력/음성 트리거  
-- `RecognitionScreen.jsx` : 음성 인식 텍스트 표시  
-- `Keypad.jsx` : 주민등록번호 입력 키패드  
-- `DocumentViewer.jsx` : 문서 뷰어 및 인쇄 버튼  
-- `FestivalScreen.jsx` : 축제/행사 정보 표시  
-- `WeatherScreen.jsx` : 날씨 정보 + AI 요약 표시  
-- `hooks/useVoiceFlow.js` : TTS/STT 흐름 관리 커스텀 훅  
+  <img width="1050" height="423" alt="2" src="https://github.com/user-attachments/assets/45905d2d-945b-45ee-b01a-29c1fc2e8fad" />
 
----
+</details>
 
-## ⚙️ 동작 시나리오
+<details>
+  <summary>메인 대화 파이프라인 (STT → Keyword Filter → OpenAI Intent → Service Router)</summary>
 
-1. 사용자가 키오스크 앞에 서면 얼굴 감지 → 웰컴 멘트 TTS  
-2. 멘트가 끝나자마자 STT 자동 시작  
-3. 사용자가 음성으로 “등본 발급”, “날씨 알려줘”, “서울 축제” 등 요청  
-4. 서버에서 요약/목적 분석 → 플로우 전환  
-5. 화면 전환 후 TTS 안내 + 필요시 인쇄 기능 제공  
-6. 알 수 없는 요청 → TTS로 재안내 후 자동으로 다시 STT 시작  
+  <img width="1074" height="420" alt="3" src="https://github.com/user-attachments/assets/0efe6091-ae17-4867-b36d-dfb6c658af3c" />
 
----
+</details>
 
-## 📌 특징 정리
+<details>
+  <summary>날씨 질의 (키워드 필터 포함 → httpx OWM → OpenAI 2줄 요약)</summary>
 
-- 브라우저 자동재생 제한을 고려한 **Audio Unlock 처리**  
-- **TTS 프리페치**로 사용자 대기 시간 최소화  
-- 멘트와 청취 사이의 공백 제거 → 자연스러운 대화 UX  
-- 알 수 없는 요청/에러 상황도 **TTS 안내 후 자동 재청취** → 끊기지 않는 흐름  
-- 축제/날씨 같은 데이터 소스 확장 가능 (CSV/외부 API 연동)  
+  <img width="1245" height="543" alt="4" src="https://github.com/user-attachments/assets/0f22773c-ad95-4039-9b0b-df089b2e334d" />
+
+</details>
+
+<details>
+  <summary>문서 발급(예: 등본) — 정책/옵션 → 본인확인 → 발급/출력/감사로그</summary>
+
+  <img width="1214" height="645" alt="5" src="https://github.com/user-attachments/assets/a671ac5d-598b-4324-83c1-ba4c0fec4387" />
+
+</details>
+
+<details>
+  <summary>날짜별 축제 조회 → 동적 페이지 생성 → QR 코드 반환</summary>
+
+  <img width="1041" height="534" alt="8" src="https://github.com/user-attachments/assets/ef10400a-807f-4b47-95e6-c2ce3f298d76" />
+
+</details>
+
+<details>
+  <summary>VAD 기반 실시간 대화(스트리밍) — pvcobra + sounddevice + resampy</summary>
+
+  <img width="996" height="646" alt="6" src="https://github.com/user-attachments/assets/d8f6d768-dbb5-4de9-8b88-ad521619f2da" />
+
+</details>
+
+<details>
+  <summary>TTS 합성 & 재생 (OpenAI TTS → 브라우저 재생)</summary>
+
+  <img width="996" height="646" alt="6" src="https://github.com/user-attachments/assets/a7be1581-1382-41bf-b1bd-c4c73d5186e9" />
+
+</details>
+
+<details>
+  <summary>장애/지연 대응 — 오프라인 큐 & 알림</summary>
+
+  <img width="1010" height="588" alt="7" src="https://github.com/user-attachments/assets/4fedbc5a-7fb8-42d4-b4c3-1df259573c4b" />
+
+</details>
+
+
+
+
+# 기술 적용 내역 
+<details>
+  <summary> 🔗 기술 적용 내역</summary>
+
+  본 프로젝트는 **Python 3.10**를 기반으로 개발되었으며,  
+  웹 서버, 음성 입출력, LLM 연동을 중심으로 다양한 라이브러리가 사용되었습니다.  
+
+  ### 🖥️ 프론트엔드 (Kiosk UI)
+- **React** — UI 구성
+- **@tensorflow/tfjs** — 브라우저 내 추론 런타임
+- **@tensorflow-models/blazeface** — 경량 얼굴 검출 모델 (입장/존재 감지)
+- **@testing-library/react / jest-dom / user-event** — UI 테스트 도구
+- **concurrently** — 개발 편의 실행 스크립트
+
+### ⚙️ 백엔드 (Python API)
+- **FastAPI** — 비동기 웹 API 프레임워크
+- **Pydantic** — 요청/응답 스키마 검증
+- **httpx** — 외부 API 연동(예: 날씨)
+- **openai** — LLM 요청 및 TTS/STT 연동
+- **loguru** — 구조적 로깅
+- **python-dotenv** — 환경변수 로딩(.env)
+
+### 🔊 음성 · VAD · 오디오 I/O (Python)
+- **pvcobra** — 음성 구간 검출(VAD)
+- **sounddevice** — 마이크 입력 장치 제어
+- **resampy** — 오디오 리샘플링(예: 48kHz → 16kHz)
+- **numpy** — 신호/수치 연산
+
+### 🛠️ 외부 도구 / 런타임 의존
+- **ffmpeg** — 브라우저 오디오(webm/ogg) → WAV(16kHz, mono) 변환
+</details>
+
