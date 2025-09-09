@@ -6,7 +6,7 @@
 <details>
 <summary> 📌 프로젝트 개요 </summary>
 
-<br><br>  
+<br>
 본 프로젝트는 공공기관 및 무인 민원 창구 환경에서 활용 가능한 **LLM 기반 대화형 무인 키오스크**를 개발하는 것을 목표로 한다.  <br><br>
 사용자는 **얼굴 인식(Face Recognition)** 및 **음성 인식(Whisper STT, VAD)** 을 통해 시스템과 상호작용하며,  <br><br>
 AI Agent는 입력된 발화를 **의도(Intent)** 단위로 분석하여 민원 문서 조회, 날씨 안내 등 다양한 공공 서비스를 제공한다.  <br><br>
@@ -17,7 +17,7 @@ AI Agent는 입력된 발화를 **의도(Intent)** 단위로 분석하여 민원
 <details>
   <summary>🚀 주요 기능 </summary>
 
-  <br><br>
+  <br>
 - **사용자 인식**: BlazeFace 기반 얼굴 인식, 세션 토큰 발급 및 만료 관리   <br><br>
 - **음성 인터페이스**: Whisper STT, OpenAI TTS, VAD 적용  <br><br>
 - **대화 처리**: LLM Agent를 통한 질의 분석, 문서 검색/날씨 API 연동  <br><br>
@@ -28,7 +28,7 @@ AI Agent는 입력된 발화를 **의도(Intent)** 단위로 분석하여 민원
 <details>
   <summary> ⚠️ 오류 발생 케이스</summary>
 
-<br><br>
+<br>
 - **얼굴 인식**: 조도/화질 문제, 다중 사용자 충돌  <br><br>
 - **음성 인식**: 잡음 환경 오류, 긴 발화 중단   <br><br>
 - **대화 처리**: LLM 응답 지연, 범위 외 질의   <br><br>
@@ -39,7 +39,7 @@ AI Agent는 입력된 발화를 **의도(Intent)** 단위로 분석하여 민원
 <details>
   <summary> 🧪 테스트 고려사항</summary>
 
-<br><br>
+<br>
   1. **멀티모달 동시 입력**: 얼굴/음성 인식 충돌 처리   <br><br>
 2. **성능 검증**: 라즈베리파이 환경 BlazeFace FPS, Whisper STT 실시간성  <br><br>
 3. **대화 품질**: VAD 적용 후 음성 끊김 여부, 캐싱 응답 일관성  <br><br>
@@ -118,7 +118,7 @@ AI Agent는 입력된 발화를 **의도(Intent)** 단위로 분석하여 민원
 <details>
   <summary> 🔗 기술 적용 내역</summary>
 
-<br><br>
+<br>
   본 프로젝트는 **Python 3.10**를 기반으로 개발되었으며,  
   웹 서버, 음성 입출력, LLM 연동을 중심으로 다양한 라이브러리가 사용되었습니다.  
 
