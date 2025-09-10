@@ -128,7 +128,6 @@ AI Agent는 입력된 발화를 **의도(Intent)** 단위로 분석하여 민원
 
   ### 🖥️ 프론트엔드 (Kiosk UI)
 - **React** — UI 구성
-- **@tensorflow/tfjs** — 브라우저 내 추론 런타임
 - **@tensorflow-models/blazeface** — 경량 얼굴 검출 모델 (입장/존재 감지)
 - **@testing-library/react / jest-dom / user-event** — UI 테스트 도구
 - **concurrently** — 개발 편의 실행 스크립트
