@@ -152,7 +152,7 @@
 - **FastAPI** — 비동기 웹 API 프레임워크
 - **Pydantic** — 요청/응답 스키마 검증
 - **httpx** — 외부 API 연동(예: 날씨)
-- **openai** — LLM 요청 및 TTS/STT 연동
+- **openai** — LLM 요청 및 STT/TTS 연동
 - **loguru** — 구조적 로깅
 - **python-dotenv** — 환경변수 로딩(.env)
 
