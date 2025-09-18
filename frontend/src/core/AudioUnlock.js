@@ -9,7 +9,7 @@ this._listeners = new Set();
 
 subscribe(fn) {
 if (typeof fn === "function") this._listeners.add(fn);
-return () => this._listeners.delete(fn);
+    return () => this._listeners.delete(fn);
 }
 
 

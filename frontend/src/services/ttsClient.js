@@ -64,12 +64,13 @@ export function prefetchTTSAudio(text, opts = {}) {
   if (_ttsCache.has(text)) return _ttsCache.get(text);
   const p = (async () => {
     const a = await fetchTTSAudio({ text, ...opts });
-    // canplay를 기다리되, 700ms 타임아웃으로 너무 오래 안기다림
+    // canplay를 기다리되, 500ms 타임아웃으로 너무 오래 안기다림
+    // Promise 약속 객체
     await new Promise((resolve) => {
       let done = false;
       const finish = () => { if (!done) { done = true; resolve(); } };
       a.addEventListener("canplay", finish, { once: true });
-      setTimeout(finish, 700);
+      setTimeout(finish, 500);
       try { a.load(); } catch {}
     });
     return a;
